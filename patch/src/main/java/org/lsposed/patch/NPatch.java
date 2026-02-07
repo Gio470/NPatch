@@ -512,23 +512,10 @@ public class NPatch {
                 } else if (type != PermissionType.USES_PERMISSION) {
                     result = newPackage + "_" + permission;
                 }
-                if (!permission.equals(result)) {
-                    logger.i("[Modify] Tag: " + type + " | " + permission + " -> " + result);
-                }
-
-                if (
-                        permission.startsWith("android.") ||
-                                permission.startsWith("com.android.") ||
-                                permission.startsWith("com.google.android.") ||
-                                permission.startsWith("com.google.firebase.") ||
-                                permission.startsWith("com.huawei.") ||
-                                permission.startsWith("com.sonymobile.")
-                ) {
-                    return permission;
-                }
-
-                if (type == PermissionType.USES_PERMISSION) {
-                    return permission;
+                if (permission.startsWith("android")
+                || permission.startsWith("com.android")
+                || permission.startsWith("com.google.android")) {
+                return permission;
                 }
 
                 return newPackage + "_" + permission;
