@@ -13,6 +13,7 @@ public class PatchConfig {
     public final LSPConfig lspConfig;
     public final String managerPackageName;
     public final String newPackage;
+    public final String skipManifestEntries;
 
     public PatchConfig(
             boolean useManager,
@@ -23,8 +24,8 @@ public class PatchConfig {
             String appComponentFactory,
             boolean injectProvider,
             boolean outputLog,
-            String newPackage
-    ) {
+            String newPackage,
+            String skipManifestEntries) {
         this.useManager = useManager;
         this.debuggable = debuggable;
         this.overrideVersionCode = overrideVersionCode;
@@ -36,5 +37,6 @@ public class PatchConfig {
         this.managerPackageName = Constants.MANAGER_PACKAGE_NAME;
         this.newPackage = newPackage;
         this.outputLog = outputLog;
+        this.skipManifestEntries = skipManifestEntries;
     }
 }

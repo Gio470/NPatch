@@ -335,6 +335,14 @@ private fun PatchOptionsBody(modifier: Modifier, onAddEmbed: () -> Unit) {
                 viewModel.newPackageName = it
             },
         )
+        SettingsEditor(
+            modifier = Modifier.padding(top = 6.dp),
+          stringResource(R.string.patch_skip_manifest_entries),
+        viewModel.skipManifestEntries,
+             onValueChange = {
+                viewModel.skipManifestEntries = it
+            },
+        )
         SettingsCheckBox(
             modifier = Modifier
                 .padding(top = 6.dp)

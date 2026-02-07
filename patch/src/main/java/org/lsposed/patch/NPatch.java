@@ -51,6 +51,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Locale;
 import java.util.Objects;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 public class NPatch {
@@ -109,6 +110,9 @@ public class NPatch {
 
     @Parameter(names = {"-m", "--embed"}, description = "Embed provided modules to apk")
     private List<String> modules = new ArrayList<>();
+
+    @Parameter(names = {"--skip-manifest"}, description = "Skip specific manifest modification items (comma separated)")
+    private String skipManifestEntries = "";
 
     private String packageName;
 
@@ -282,10 +286,33 @@ public class NPatch {
 
             logger.i("Patching apk...");
             // modify manifest
-            final var config = new PatchConfig(useManager, debuggableFlag, overrideVersionCode, sigbypassLevel, originalSignature, appComponentFactory, isInjectProvider, outputLog, newPackage);
+            final var config = new PatchConfig(
+                    useManager,
+                    debuggableFlag,
+                    overrideVersionCode,
+                    sigbypassLevel,
+                    originalSignature,
+                    appComponentFactory,
+                    isInjectProvider,
+                    outputLog,
+                    newPackage,
+                    skipManifestEntries
+            );
+
             final var configBytes = new Gson().toJson(config).getBytes(StandardCharsets.UTF_8);
             final var metadata = Base64.getEncoder().encodeToString(configBytes);
-            try (var is = new ByteArrayInputStream(modifyManifestFile(manifestEntry.open(), metadata, minSdkVersion, pair.packageName, newPackage, pair.permissions, pair.use_permissions, pair.authorities))) {
+
+           try (var is = new ByteArrayInputStream(modifyManifestFile(
+                    manifestEntry.open(),
+                    metadata,
+                    minSdkVersion,
+                    pair.packageName,
+                    newPackage,
+                    pair.permissions,
+                    pair.use_permissions,
+                    pair.authorities,
+                    skipManifestEntries
+            ))) {
                 dstZFile.add(ANDROID_MANIFEST_XML, is);
             } catch (Throwable e) {
                 throw new PatchError("Error when modifying manifest", e);
@@ -353,7 +380,6 @@ public class NPatch {
 
             // create zip link
             logger.d("Creating nested apk link...");
-
             for (StoredEntry entry : srcZFile.entries()) {
                 String name = entry.getCentralDirectoryHeader().getName();
                 if (dstZFile.get(name) != null) continue;
@@ -369,7 +395,6 @@ public class NPatch {
         }
         logger.i("Done. Output APK: " + outputFile.getAbsolutePath());
     }
-
     private List<String> replacePermissionWithNewPackage(List<String> list, String pkg, String newPackage){
         List<String> res = new LinkedList<>();
         if (list != null && !list.isEmpty()){
@@ -438,9 +463,25 @@ public class NPatch {
         }
     }
 
-    private byte[] modifyManifestFile(InputStream is, String metadata, int minSdkVersion, String originPackage, String newPackage, List<String> permissions, List<String> uses_permissions, List<String> authorities) throws IOException {
+    private byte[] modifyManifestFile(
+            InputStream is,
+            String metadata,
+            int minSdkVersion,
+            String originPackage,
+            String newPackage,
+            List<String> permissions,
+            List<String> uses_permissions,
+            List<String> authorities,
+            String skipManifestEntries
+    ) throws IOException {
         ModificationProperty property = new ModificationProperty();
 
+        Set<String> skipSet = new HashSet<>();
+        if (skipManifestEntries != null && !skipManifestEntries.isEmpty()) {
+            for (String s : skipManifestEntries.split(",")) {
+                skipSet.add(s.trim().toLowerCase());
+            }
+        }
         if (overrideVersionCode)
             property.addManifestAttribute(new AttributeItem(NodeValue.Manifest.VERSION_CODE, 1));
         if (minSdkVersion < 28)
@@ -450,14 +491,29 @@ public class NPatch {
         if (newPackage != null && !newPackage.isEmpty()){
             property.addManifestAttribute(new AttributeItem(NodeValue.Manifest.PACKAGE, newPackage).setNamespace(null));
         }
-        property.setPermissionMapper(new PermissionMapper() {
+    property.setPermissionMapper(new PermissionMapper() {
             @Override
             public String map(PermissionType type, String permission) {
-                if (permission == null || permission.isEmpty()) {
+                if (permission == null || permission.isEmpty()) return permission;
+                String lowerPermission = permission.toLowerCase();
+                for (String skipItem : skipSet) {
+                    if (lowerPermission.contains(skipItem)) {
+                        logger.i("[Skip] Tag: " + type + " | Name: " + permission + " (Match keyword: " + skipItem + ")");
+                        return permission;
+                    }
+                }
+                if (skipSet.contains("permissions") || skipSet.contains("uses-permission") || skipSet.contains(lowerPermission)) {
+                    logger.i("[Skip] Tag: " + type + " | Name: " + permission + " (Explicitly skipped)");
                     return permission;
                 }
+                String result = permission;
                 if (permission.startsWith(originPackage)) {
-                    return permission.replaceFirst(originPackage, newPackage);
+                    result = permission.replaceFirst(originPackage, newPackage);
+                } else if (type != PermissionType.USES_PERMISSION) {
+                    result = newPackage + "_" + permission;
+                }
+                if (!permission.equals(result)) {
+                    logger.i("[Modify] Tag: " + type + " | " + permission + " -> " + result);
                 }
 
                 if (
@@ -482,6 +538,15 @@ public class NPatch {
         property.setAuthorityMapper(new AttributeMapper<String>() {
             @Override
             public String map(String value) {
+                if (value == null) return null;
+                if (skipSet.contains("authorities") || skipSet.contains("provider")) return value;
+                for (String skipItem : skipSet) {
+                    if (value.toLowerCase().contains(skipItem)) {
+                        logger.i("[Skip] Tag: PROVIDER_AUTHORITY | Name: " + value + " (Keyword match)");
+                        return value;
+                    }
+                }
+                String result;
                 if (value.startsWith(originPackage)){
                     assert newPackage != null;
                     return value.replaceFirst(originPackage, newPackage);
@@ -492,18 +557,18 @@ public class NPatch {
 
         property.addMetaData(new ModificationProperty.MetaData("npatch", metadata));
         // TODO: replace query_all with queries -> manager
-        if (useManager)
+        if (useManager) {
+            logger.i("[Add] Tag: USES_PERMISSION | Name: android.permission.QUERY_ALL_PACKAGES");
             property.addUsesPermission("android.permission.QUERY_ALL_PACKAGES");
-        if (isInjectProvider){
+        }
+        if (isInjectProvider && !skipSet.contains("inject-provider")) {
             HashMap<String,String> providerMap = new HashMap<>();
             providerMap.put("name","bin.mt.file.content.MTDataFilesProvider");
             providerMap.put("permission","android.permission.MANAGE_DOCUMENTS");
             providerMap.put("exported","true");
             providerMap.put("authorities",packageName + ".MTDataFilesProvider");
             providerMap.put("grantUriPermissions","true");
-
             property.addProvider(providerMap,"android.content.action.DOCUMENTS_PROVIDER");
-
         }
 
         var os = new ByteArrayOutputStream();

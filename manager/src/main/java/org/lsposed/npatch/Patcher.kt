@@ -16,12 +16,14 @@ import java.io.IOException
 object Patcher {
 
     class Options(
+
         val newPackageName: String,
-        private val injectDex: Boolean,
-        private val config: PatchConfig,
-        private val apkPaths: List<String>,
-        private val embeddedModules: List<String>?
-    ) {
+        val injectDex: Boolean,
+        val config: PatchConfig,
+        val apkPaths: List<String>,
+        val embeddedModules: List<String>?,
+        val skipManifestEntries: String,
+  ) {
         fun toStringArray(): Array<String> {
             return buildList {
                 add("-o"); add(lspApp.tmpApkDir.absolutePath)
@@ -34,8 +36,11 @@ object Patcher {
                 embeddedModules?.forEach {
                     add("-m"); add(it)
                 }
+                if (skipManifestEntries.isNotEmpty()) {
+                    add("--skip-manifest"); add(skipManifestEntries)
+                }
                 if (config.injectProvider) add("--provider")
-                if(injectDex) add("--injectdex")
+                if (injectDex) add("--injectdex")
                 if (!MyKeyStore.useDefault) {
                     addAll(arrayOf("-k", MyKeyStore.file.path, Configs.keyStorePassword, Configs.keyStoreAlias, Configs.keyStoreAliasPassword))
                 }
@@ -43,10 +48,9 @@ object Patcher {
             }.toTypedArray()
         }
     }
-
     suspend fun patch(logger: Logger, options: Options) {
         withContext(Dispatchers.IO) {
-            NPatch(logger, *options.toStringArray()).doCommandLine()
+          NPatch(logger, *options.toStringArray()).doCommandLine()
 
             val uri = Configs.storageDirectory?.toUri()
                 ?: throw IOException("Uri is null")
