@@ -123,7 +123,7 @@ public class LSPApplication {
         disableProfile(context);
         Startup.initXposed(false, ActivityThread.currentProcessName(), context.getApplicationInfo().dataDir, service);
         Startup.bootstrapXposed();
-        
+
         // WARN: Since it uses `XResource`, the following class should not be initialized
         // before forkPostCommon is invoke. Otherwise, you will get failure of XResources
 
@@ -242,12 +242,11 @@ public class LSPApplication {
 
             var context = (Context) XposedHelpers.callStaticMethod(Class.forName("android.app.ContextImpl"), "createAppContext", activityThread, stubLoadedApk);
             if (config.appComponentFactory != null) {
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
                 try {
                     context.getClassLoader().loadClass(config.appComponentFactory);
                 } catch (Throwable e) {
                     Log.w(TAG, "Original AppComponentFactory not found: " + config.appComponentFactory, e);
-
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
                         appInfo.appComponentFactory = null;
                     }
                 }
