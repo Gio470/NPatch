@@ -28,6 +28,7 @@ androidx-activity-compose = "androidx.activity:activity-compose:1.10.1"
 androidx-navigation-compose = "androidx.navigation:navigation-compose:2.9.3"
 androidx-lifecycle-viewmodel-compose = "androidx.lifecycle:lifecycle-viewmodel-compose:2.9.2"
 multidex = { group = "androidx.multidex", name = "multidex", version.ref = "multidex" }
+desugar-jdk-libs = { group = "com.android.tools", name = "desugar_jdk_libs_nio", version = "2.1.5" }
 
 # Jetpack Compose Libraries
 androidx-compose-bom = { module = "androidx.compose:compose-bom", version.ref = "compose-bom" }
