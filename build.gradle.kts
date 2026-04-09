@@ -21,7 +21,6 @@ buildscript {
     }
     dependencies {
         classpath("org.eclipse.jgit:org.eclipse.jgit:7.3.0.202506031305-r")
-        coreLibraryDesugaring("com.android.tools:desugar_jdk_libs_nio:2.1.5")
     }
 }
 
@@ -138,7 +137,6 @@ fun Project.configureBaseExtension() {
         compileOptions {
             targetCompatibility(androidTargetCompatibility)
             sourceCompatibility(androidSourceCompatibility)
-            iscoreLibraryDesugaringEnabled = true
         }
 
         buildTypes {
