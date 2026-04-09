@@ -11,6 +11,7 @@ commons-io = "2.20.0"
 beust-jcommander = "1.82"
 google-gson = "2.13.1"
 core-ktx = "1.17.0"
+multidex = "2.0.1"
 
 [plugins]
 google-devtools-ksp = { id = "com.google.devtools.ksp", version.ref = "ksp" }
@@ -26,6 +27,7 @@ androidx-customview-poolingcontainer = "androidx.customview:customview-poolingco
 androidx-activity-compose = "androidx.activity:activity-compose:1.10.1"
 androidx-navigation-compose = "androidx.navigation:navigation-compose:2.9.3"
 androidx-lifecycle-viewmodel-compose = "androidx.lifecycle:lifecycle-viewmodel-compose:2.9.2"
+multidex = { group = "androidx.multidex", name = "multidex", version.ref = "multidex" }
 
 # Jetpack Compose Libraries
 androidx-compose-bom = { module = "androidx.compose:compose-bom", version.ref = "compose-bom" }
