@@ -8,7 +8,6 @@ plugins {
 java {
     sourceCompatibility = androidSourceCompatibility
     targetCompatibility = androidTargetCompatibility
-    isCoreLibraryDesugaringEnabled = true
 }
 
 dependencies {
@@ -19,5 +18,4 @@ dependencies {
     api("com.android.tools.build:apksig:8.0.2")
     compileOnlyApi("com.google.auto.value:auto-value-annotations:1.10.1")
     annotationProcessor("com.google.auto.value:auto-value:1.10.1")
-    coreLibraryDesugaring("com.android.tools:desugar_jdk_libs_nio:2.1.5")
 }
