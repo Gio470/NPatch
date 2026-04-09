@@ -10,10 +10,12 @@ plugins {
 java {
     sourceCompatibility = androidSourceCompatibility
     targetCompatibility = androidTargetCompatibility
+    isCoreLibraryDesugaringEnabled = true
 }
 
 dependencies {
     implementation(projects.patch)
+    coreLibraryDesugaring("com.android.tools:desugar_jdk_libs_nio:2.1.5")
 }
 
 fun Jar.configure(variant: String) {
