@@ -10,7 +10,6 @@ plugins {
 java {
     sourceCompatibility = androidSourceCompatibility
     targetCompatibility = androidTargetCompatibility
-    isCoreLibraryDesugaringEnabled = true
 }
 
 dependencies {
