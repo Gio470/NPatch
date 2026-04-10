@@ -45,4 +45,5 @@ dependencies {
     compileOnly(projects.hiddenapi.stubs)
     implementation(projects.share.java)
     implementation(libs.hiddenapibypass)
+    coreLibraryDesugaring("com.android.tools:desugar_jdk_libs_nio:2.1.5")
 }
