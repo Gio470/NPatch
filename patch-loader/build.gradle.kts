@@ -69,7 +69,6 @@ dependencies {
     implementation(projects.services.daemonService)
     implementation(projects.share.android)
     implementation(projects.share.java)
-    coreLibraryDesugaring("com.android.tools:desugar_jdk_libs_nio:2.1.5")
 
     implementation(libs.gson)
 }
