@@ -57,8 +57,8 @@ val androidTargetSdkVersion by extra(36)
 val androidCompileSdkVersion by extra(36)
 val androidCompileNdkVersion by extra("29.0.13599879")
 val androidBuildToolsVersion by extra("36.1.0")
-val androidSourceCompatibility by extra(JavaVersion.VERSION_21)
-val androidTargetCompatibility by extra(JavaVersion.VERSION_21)
+val androidSourceCompatibility by extra(JavaVersion.VERSION_17)
+val androidTargetCompatibility by extra(JavaVersion.VERSION_17)
 
 tasks.register<Delete>("clean") {
     delete(layout.buildDirectory)
@@ -137,6 +137,7 @@ fun Project.configureBaseExtension() {
         compileOptions {
             targetCompatibility(androidTargetCompatibility)
             sourceCompatibility(androidSourceCompatibility)
+            isCoreLibraryDesugaringEnabled = true
         }
 
         buildTypes {
@@ -245,8 +246,17 @@ subprojects {
     plugins.withId("com.android.library") {
         configureBaseExtension()
     }
-}
+} 
 
+    repositories {
+        google()
+        mavenCentral()
+        maven(url = "https://jitpack.io")
+    }
+
+    dependencies {
+        coreLibraryDesugaring("com.android.tools:desugar_jdk_libs_nio:2.1.5")
+   } 
 
 project(":core") {
     afterEvaluate {
@@ -257,6 +267,14 @@ project(":core") {
                     release { proguardFiles(rootProject.file("share/lspatch-rules.pro")) }
                 }
             }
+        }
+    }
+}
+
+allprojects {
+    tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile>().configureEach {
+        compilerOptions {
+            jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17)
         }
     }
 }
