@@ -248,12 +248,6 @@ subprojects {
     }
 } 
 
-    repositories {
-        google()
-        mavenCentral()
-        maven(url = "https://jitpack.io")
-    }
-
     dependencies {
         add("coreLibraryDesugaring", "com.android.tools:desugar_jdk_libs_nio:2.1.5")
    } 
