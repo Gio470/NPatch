@@ -137,7 +137,6 @@ fun Project.configureBaseExtension() {
         compileOptions {
             targetCompatibility(androidTargetCompatibility)
             sourceCompatibility(androidSourceCompatibility)
-            isCoreLibraryDesugaringEnabled = true
         }
 
         buildTypes {
