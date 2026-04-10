@@ -27,7 +27,7 @@ class LSPApplication : Application() {
 
     override fun onCreate() {
         super.onCreate()
-        verifySignature()
+        // verifySignature()
 
         try {
         } catch (e: UnsatisfiedLinkError) {
