@@ -24,30 +24,26 @@ jobs:
         submodules: 'recursive'
         fetch-depth: 0
 
-    - name: 🧙‍♂️ Pháp sư cấy SharedMemory vào APK
+    - name: 🧙‍♂️ Pháp sư chế tạo SharedMemory Dex
       run: |
         mkdir -p out/shared_memory_dex
+        
+        # 1. Biên dịch Java (Vẫn dùng android.jar)
         javac -source 1.8 -target 1.8 \
           -bootclasspath $ANDROID_HOME/platforms/android-34/android.jar \
           src/android/os/SharedMemory.java
-        $ANDROID_HOME/build-tools/34.0.0/d8 src/android/os/*.class --output out/shared_memory_dex/
-        APK_PATH=$(find out/release -name "*.apk" | head -n 1)
         
-        if [ -z "$APK_PATH" ]; then
-          echo "Không tìm thấy APK để cấy ghép!"
-          exit 1
-        fi
+        # 2. Chuyển sang Dex (THÊM --lib ĐỂ D8 HẾT BỊ MÙ)
+        $ANDROID_HOME/build-tools/34.0.0/d8 src/android/os/*.class \
+          --lib $ANDROID_HOME/platforms/android-34/android.jar \
+          --output out/shared_memory_dex/
 
-        echo "Đang cấy ghép vào: $APK_PATH"
-
-        # 3. Dùng 7z để nhét classes.dex mới vào APK
-        # Chúng ta sẽ đặt tên nó là classesN.dex để không đè lên code cũ
-        # Kiểm tra xem có bao nhiêu file dex rồi để đặt tên cho đúng
-        DEX_COUNT=$(7z l "$APK_PATH" | grep -c "classes.*\.dex")
-        NEW_DEX_NAME="classes$((DEX_COUNT + 1)).dex"
-        
-        mv out/shared_memory_dex/classes.dex "out/shared_memory_dex/$NEW_DEX_NAME"
-        7z a "$APK_PATH" "./out/shared_memory_dex/$NEW_DEX_NAME"
+    - name: 上傳 SharedMemory Dex
+      uses: actions/upload-artifact@v5
+      with:
+        name: shared-memory-dex-${{ env.commit }} 
+        path: out/shared_memory_dex/*
+        retention-days: 7
 
     - name: 設定快取
       uses: actions/cache@v4
