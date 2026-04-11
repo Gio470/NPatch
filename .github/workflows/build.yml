@@ -133,25 +133,34 @@ jobs:
 
     - name: 設定 commit id
       run: echo "commit=$(echo ${{ github.sha }} | cut -c-7)" > $GITHUB_ENV
-          
-    - name: Thuat Trao Than Sun Misc
+                    
+    - name: Thuat Trao Than Sun Misc V2
       run: |
-          echo "😈 Đang tiến hành làm giấy tờ giả để qua mặt Java 17..."
+          echo "😈 Đang dọn dẹp đống hỗn độn và làm lại giấy tờ giả chuẩn 2026..."
           
-          # 1. Tạo thư mục mang tên họ mới (Tránh chữ sun.misc đứng đầu)
+          # 1. Đảm bảo môi trường sạch sẽ
+          rm -rf core/hiddenapi/stubs/src/main/java/org/lsposed/stubs/sun/misc/
           mkdir -p core/hiddenapi/stubs/src/main/java/org/lsposed/stubs/sun/misc/
           
-          # 2. Di dời cái file bị cấm sang nhà mới
-          mv core/hiddenapi/stubs/src/main/java/sun/misc/CompoundEnumeration.java core/hiddenapi/stubs/src/main/java/org/lsposed/stubs/sun/misc/
+          # 2. Chỉ di chuyển file nếu nó còn ở chỗ cũ
+          if [ -f core/hiddenapi/stubs/src/main/java/sun/misc/CompoundEnumeration.java ]; then
+            mv core/hiddenapi/stubs/src/main/java/sun/misc/CompoundEnumeration.java core/hiddenapi/stubs/src/main/java/org/lsposed/stubs/sun/misc/
+          fi
           
-          # 3. Sửa lại dòng khai báo Package bên trong file đó
-          sed -i 's/package sun.misc;/package org.lsposed.stubs.sun.misc;/g' core/hiddenapi/stubs/src/main/java/org/lsposed/stubs/sun/misc/CompoundEnumeration.java
+          # 3. Sửa nội dung file (Chỉ sửa nếu dòng đó bắt đầu bằng package sun.misc)
+          if [ -f core/hiddenapi/stubs/src/main/java/org/lsposed/stubs/sun/misc/CompoundEnumeration.java ]; then
+            sed -i 's/^package sun\.misc;/package org.lsposed.stubs.sun.misc;/g' core/hiddenapi/stubs/src/main/java/org/lsposed/stubs/sun/misc/CompoundEnumeration.java
+          fi
           
-          # 4. Truy lùng TOÀN BỘ dự án, thằng nào đang gọi sun.misc thì bắt gọi sang tên mới
-          find . -type f -name "*.java" -exec sed -i 's/import sun.misc.CompoundEnumeration;/import org.lsposed.stubs.sun.misc.CompoundEnumeration;/g' {} +
-          find . -type f -name "*.java" -exec sed -i 's/sun.misc.CompoundEnumeration/org.lsposed.stubs.sun.misc.CompoundEnumeration/g' {} +
+          # 4. SỬA LỖI LẶP TÊN (Quan trọng nhất ⚡)
+          # Bước này sẽ biến "org.lsposed.stubs.org.lsposed.stubs..." trở lại thành "org.lsposed.stubs..."
+          find . -type f -name "*.java" -exec sed -i 's/org\.lsposed\.stubs\.org\.lsposed\.stubs\./org.lsposed.stubs./g' {} +
           
-          echo "✅ Đã tráo thân thành công! Hải quan Java 17 sẽ không nhận ra đâu!"
+          # 5. Sửa import một cách thông minh (Chỉ thay đổi nếu nó là sun.misc đứng biệt lập)
+          find . -type f -name "*.java" -exec sed -i 's/\bimport sun\.misc\.CompoundEnumeration;/import org.lsposed.stubs.sun.misc.CompoundEnumeration;/g' {} +
+          find . -type f -name "*.java" -exec sed -i 's/\bsun\.misc\.CompoundEnumeration/org.lsposed.stubs.sun.misc.CompoundEnumeration/g' {} +
+          
+          echo "✅ Đã dọn sạch rác và tráo thân hoàn hảo!"
 
     - name: 使用 Gradle 構建
       run: ./gradlew buildAll
