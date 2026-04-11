@@ -134,39 +134,33 @@ jobs:
     - name: 設定 commit id
       run: echo "commit=$(echo ${{ github.sha }} | cut -c-7)" > $GITHUB_ENV
                     
-          # 🪪 BƯỚC HACK: THUẬT CẢI TÊN ĐỔI HỌ (FRANKENSTEIN EDITION)
-    - name: Thuat Cai Ten Doi Ho V3
+      # ⚔️ BƯỚC HACK TỐI THƯỢNG V5: SỬA ĐƯỜNG DẪN C++ & SUN.MISC
+    - name: Phap Thuat Hoi Sinh Native V5
       run: |
-          echo "😈 Đang tiến hành đại phẫu thuật tên gọi để tiêu diệt lỗi lặp..."
+          echo "😈 Đang tái cấu trúc hệ thống để giữ lại linh hồn C++..."
+
+          # --- PHẦN 1: SỬA LỖI CMAKE (TRUY NÃ ĐÚNG ĐƯỜNG DẪN CORE) ---
+          # Thằng CMake bị lỗi vì nó không tìm thấy thư mục core. 
+          # Chúng ta sẽ dùng lệnh sed để trỏ lại đường dẫn tuyệt đối cho nó.
+          find . -name "CMakeLists.txt" -exec sed -i 's|add_subdirectory(core)|add_subdirectory(../core/core/src/main/jni)|g' {} + || true
+
+          # --- PHẦN 2: CẤP HỘ CHIẾU CHO SUN.MISC (VẪN GIỮ NGUYÊN) ---
+          STUB_PATH="core/hiddenapi/stubs/src/main/java/sun/misc/CompoundEnumeration.java"
+          NEW_PKG_DIR="core/hiddenapi/stubs/src/main/java/org/lsposed/stubs/sun/misc"
           
-          # 1. Định nghĩa các đường dẫn
-          STUB_FILE="core/hiddenapi/stubs/src/main/java/sun/misc/CompoundEnumeration.java"
-          NEW_DIR="core/hiddenapi/stubs/src/main/java/org/lsposed/franken/"
-          NEW_FILE="${NEW_DIR}FrankenEnum.java"
-          
-          # 2. Tạo thư mục mới sạch sẽ
-          mkdir -p "$NEW_DIR"
-          
-          # 3. Di chuyển và ĐỔI TÊN FILE (Từ CompoundEnumeration -> FrankenEnum)
-          if [ -f "$STUB_FILE" ]; then
-            mv "$STUB_FILE" "$NEW_FILE"
+          if [ -f "$STUB_PATH" ]; then
+            echo "✅ Cấp thẻ căn cước mới cho Sun.Misc..."
+            mkdir -p "$NEW_PKG_DIR"
+            mv "$STUB_PATH" "$NEW_PKG_DIR/"
+            sed -i 's/^package sun\.misc;/package org.lsposed.stubs.sun.misc;/g' "$NEW_PKG_DIR/CompoundEnumeration.java"
+            find . -type f -name "*.java" -exec sed -i 's/\bimport sun\.misc\.CompoundEnumeration;/import org.lsposed.stubs.sun.misc.CompoundEnumeration;/g' {} +
+            find . -type f -name "*.java" -exec sed -i 's/\bsun\.misc\.CompoundEnumeration/org.lsposed.stubs.sun.misc.CompoundEnumeration/g' {} +
           fi
-          
-          # 4. Sửa nội dung bên trong file mới (Đổi package và đổi tên Class)
-          if [ -f "$NEW_FILE" ]; then
-            sed -i 's/package sun\.misc;/package org.lsposed.franken;/g' "$NEW_FILE"
-            sed -i 's/public class CompoundEnumeration/public class FrankenEnum/g' "$NEW_FILE"
-            sed -i 's/public CompoundEnumeration/public FrankenEnum/g' "$NEW_FILE"
-          fi
-          
-          # 5. TRUY LÙNG VÀ SỬA TOÀN BỘ DỰ ÁN (Xóa bỏ mọi dấu vết của sun.misc cũ)
-          # Bước này cực kỳ quan trọng: Bắt mọi file phải gọi FrankenEnum ở địa chỉ mới
-          find . -type f -name "*.java" -exec sed -i 's/import sun\.misc\.CompoundEnumeration;/import org.lsposed.franken.FrankenEnum;/g' {} +
-          find . -type f -name "*.java" -exec sed -i 's/import org\.lsposed\.stubs\..*CompoundEnumeration;/import org.lsposed.franken.FrankenEnum;/g' {} +
-          find . -type f -name "*.java" -exec sed -i 's/new CompoundEnumeration/new FrankenEnum/g' {} +
-          find . -type f -name "*.java" -exec sed -i 's/\bCompoundEnumeration\b/FrankenEnum/g' {} +
-          
-          echo "✅ Đã biến CompoundEnumeration thành FrankenEnum! Không còn lỗi lặp tên!"
+
+          # --- PHẦN 3: KIỂM TRA LỖI LẶP TÊN ---
+          find . -type f -name "*.java" -exec sed -i 's/org\.lsposed\.stubs\.org\.lsposed\.stubs\./org.lsposed.stubs./g' {} +
+
+          echo "🚀 Native Core và Java Bridge đã được nối thông! NPatch Manager Android 7 khởi động!"
 
     - name: 使用 Gradle 構建
       run: ./gradlew buildAll
