@@ -1,10 +1,8 @@
-import com.android.build.api.dsl.ApplicationExtension
-import com.android.build.api.variant.ApplicationAndroidComponentsExtension
 import com.android.build.gradle.BaseExtension
+import com.android.build.gradle.LibraryExtension
 import org.eclipse.jgit.api.Git
 import org.eclipse.jgit.internal.storage.file.FileRepository
 import org.eclipse.jgit.storage.file.FileRepositoryBuilder
-import com.android.build.gradle.LibraryExtension
 import org.gradle.kotlin.dsl.extra
 
 plugins {
@@ -34,217 +32,56 @@ val (coreCommitCount, coreLatestTag) = FileRepositoryBuilder().setGitDir(rootPro
     .runCatching {
         build().use { repo ->
             val git = Git(repo)
-            val coreCommitCount =
-                git.log()
-                    .add(repo.refDatabase.exactRef("HEAD").objectId)
-                    .call().count()
-            val ver = git.describe()
-                .setTags(true)
-                .setAbbrev(0).call().removePrefix("v")
+            val coreCommitCount = git.log().add(repo.refDatabase.exactRef("HEAD").objectId).call().count()
+            val ver = git.describe().setTags(true).setAbbrev(0).call().removePrefix("v")
             coreCommitCount to ver
         }
     }.getOrNull() ?: (1145 to "1.0")
 
-// sync from https://github.com/JingMartix/LSPosed/blob/master/build.gradle.kts
-val defaultManagerPackageName by extra("org.lsposed.npatch")
-val apiCode by extra(100)
-val verCode by extra(commitCount)
-val verName by extra("0.7.4")
-val coreVerCode by extra(coreCommitCount)
-val coreVerName by extra(coreLatestTag)
 val androidMinSdkVersion by extra(24)
 val androidTargetSdkVersion by extra(36)
 val androidCompileSdkVersion by extra(36)
-val androidCompileNdkVersion by extra("29.0.13599879")
 val androidBuildToolsVersion by extra("36.1.0")
-val androidSourceCompatibility by extra(JavaVersion.VERSION_17)
-val androidTargetCompatibility by extra(JavaVersion.VERSION_17)
 
 tasks.register<Delete>("clean") {
     delete(layout.buildDirectory)
 }
 
-listOf("Debug", "Release").forEach { variant ->
-    tasks.register("build$variant") {
-        description = "Build NPatch with $variant"
-        dependsOn(tasks.findByPath(":jar:build$variant") ?: "jar:build$variant")
-        dependsOn(tasks.findByPath(":manager:build$variant") ?: "manager:build$variant")
-    }
-}
-
-tasks.register("buildAll") {
-    dependsOn("buildDebug", "buildRelease")
-}
-
 fun Project.configureBaseExtension() {
     extensions.findByType(BaseExtension::class)?.run {
         compileSdkVersion(androidCompileSdkVersion)
-        ndkVersion = androidCompileNdkVersion
         buildToolsVersion = androidBuildToolsVersion
-
-        externalNativeBuild.cmake {
-            version = "3.29.8+"
-            buildStagingDirectory = layout.buildDirectory.get().asFile
-        }
 
         defaultConfig {
             minSdk = androidMinSdkVersion
             targetSdk = androidTargetSdkVersion
-            versionCode = verCode
-            versionName = verName
-
-            signingConfigs.create("config") {
-                val androidStoreFile = project.findProperty("androidStoreFile") as String?
-                if (!androidStoreFile.isNullOrEmpty()) {
-                    storeFile = rootProject.file(androidStoreFile)
-                    storePassword = project.property("androidStorePassword") as String
-                    keyAlias = project.property("androidKeyAlias") as String
-                    keyPassword = project.property("androidKeyPassword") as String
-                }
-            }
-
-            externalNativeBuild {
-                cmake {
-                    arguments += "-DEXTERNAL_ROOT=${File(rootDir.absolutePath, "core/external")}"
-                    arguments += "-DCORE_ROOT=${File(rootDir.absolutePath, 
-                    "core/core/src/main/jni")}"
-                    abiFilters("arm64-v8a", "x86_64")
-                    val flags = arrayOf(
-                        "-Wall",
-                        "-Qunused-arguments",
-                        "-Wno-gnu-string-literal-operator-template",
-                        "-fno-rtti",
-                        "-fvisibility=hidden",
-                        "-fvisibility-inlines-hidden",
-                        "-fno-exceptions",
-                        "-fno-stack-protector",
-                        "-fomit-frame-pointer",
-                        "-Wno-builtin-macro-redefined",
-                        "-Wno-unused-value",
-                        "-D__FILE__=__FILE_NAME__",
-                    )
-                    cppFlags("-std=c++20", *flags)
-                    cFlags("-std=c18", *flags)
-                    arguments(
-                        "-DCMAKE_EXPORT_COMPILE_COMMANDS=ON",
-                        "-DVERSION_CODE=$verCode",
-                        "-DVERSION_NAME=$verName",
-                    )
-                }
-            }
+            versionCode = commitCount
+            versionName = "0.7.4-Frankenstein"
+            multiDexEnabled = true
         }
 
         compileOptions {
-            targetCompatibility(androidTargetCompatibility)
-            sourceCompatibility(androidSourceCompatibility)
+            sourceCompatibility = JavaVersion.VERSION_17
+            targetCompatibility = JavaVersion.VERSION_17
             isCoreLibraryDesugaringEnabled = true
-        }
-
-        buildTypes {
-            all {
-                signingConfig = if (signingConfigs["config"].storeFile != null) signingConfigs["config"] else signingConfigs["debug"]
-            }
-            named("debug") {
-                externalNativeBuild {
-                    cmake {
-                        arguments.addAll(
-                            arrayOf(
-                                "-DCMAKE_CXX_FLAGS_DEBUG=-Og",
-                                "-DCMAKE_C_FLAGS_DEBUG=-Og",
-                            )
-                        )
-                    }
-                }
-            }
-            named("release") {
-                signingConfig = null
-                externalNativeBuild {
-                    cmake {
-                        val flags = arrayOf(
-                            "-Wl,--exclude-libs,ALL",
-                            "-ffunction-sections",
-                            "-fdata-sections",
-                            "-Wl,--gc-sections",
-                            "-fno-unwind-tables",
-                            "-fno-asynchronous-unwind-tables",
-                            "-flto=thin",
-                            "-Wl,--thinlto-cache-policy,cache_size_bytes=300m",
-                            "-Wl,--thinlto-cache-dir=${layout.buildDirectory.get().asFile.absolutePath}/.lto-cache", 
-                        )
-                        cppFlags.addAll(flags)
-                        cFlags.addAll(flags)
-                        val configFlags = arrayOf(
-                            "-Oz",
-                            "-DNDEBUG"
-                        ).joinToString(" ")
-                        arguments.addAll(
-                            arrayOf(
-                                "-DCMAKE_CXX_FLAGS_RELEASE=$configFlags",
-                                "-DCMAKE_CXX_FLAGS_RELWITHDEBINFO=$configFlags",
-                                "-DCMAKE_C_FLAGS_RELEASE=$configFlags",
-                                "-DCMAKE_C_FLAGS_RELWITHDEBINFO=$configFlags",
-                                "-DDEBUG_SYMBOLS_PATH=${layout.buildDirectory.get().asFile.absolutePath}/symbols", 
-                            )
-                        )
-                    }
-                }
-            }
-        }
-    }
-
-    extensions.findByType(ApplicationExtension::class)?.lint {
-        abortOnError = true
-        checkReleaseBuilds = false
-    }
-
-    extensions.findByType(ApplicationAndroidComponentsExtension::class)?.let { androidComponents ->
-        tasks.register("optimizeReleaseRes") {
-            doLast {
-            val isWindows = System.getProperty("os.name").lowercase().contains("windows")
-            val aapt2Name = if (isWindows) "aapt2.exe" else "aapt2"
-            val aapt2 = File(androidComponents.sdkComponents.sdkDirectory.get().asFile, "build-tools/${androidBuildToolsVersion}/$aapt2Name")
-            val zip = File(layout.buildDirectory.get().asFile, "intermediates/optimized_processed_res/release/optimizeReleaseResources/resources-release-optimize.ap_")
-            val optimized = File("${zip.absolutePath}.opt")
-                
-                project.exec {
-                    commandLine(aapt2, "optimize", "--collapse-resource-names", "--enable-sparse-encoding", "-o", optimized, zip)
-                }
-                if (optimized.exists()) {
-                    zip.delete()
-                    optimized.renameTo(zip)
-                }
-            }
-        }
-
-        tasks.configureEach {
-            if (name == "optimizeReleaseResources") {
-                finalizedBy("optimizeReleaseRes")
-            }
         }
     }
 }
 
 subprojects {
-    plugins.withId("com.android.application") {
-        configureBaseExtension()
-    }
-    plugins.withId("com.android.library") {
-        configureBaseExtension()
-    }
-} 
+    plugins.withId("com.android.application") { configureBaseExtension() }
+    plugins.withId("com.android.library") { configureBaseExtension() }
 
-    dependencies {
-        implementation("com.android.tools:desugar_jdk_libs_nio:2.1.5")
-   } 
+    repositories {
+        google()
+        mavenCentral()
+        maven(url = "https://jitpack.io")
+    }
 
-project(":core") {
     afterEvaluate {
-        if (property("android") is LibraryExtension) {
-            val android = property("android") as LibraryExtension
-            android.run {
-                buildTypes {
-                    release { proguardFiles(rootProject.file("share/lspatch-rules.pro")) }
-                }
+        if (plugins.hasPlugin("com.android.application") || plugins.hasPlugin("com.android.library")) {
+            dependencies {
+                add("coreLibraryDesugaring", "com.android.tools:desugar_jdk_libs_nio:2.1.5")
             }
         }
     }
@@ -252,8 +89,24 @@ project(":core") {
 
 allprojects {
     tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile>().configureEach {
-        compilerOptions {
-            jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17)
+        @Suppress("DEPRECATION")
+        kotlinOptions {
+            jvmTarget = "17"
+        }
+    }
+}
+
+project(":core") {
+    afterEvaluate {
+        if (property("android") is LibraryExtension) {
+            val android = property("android") as LibraryExtension
+            android.run {
+                buildTypes {
+                    getByName("release") {
+                        proguardFiles(rootProject.file("share/lspatch-rules.pro"))
+                    }
+                }
+            }
         }
     }
 }
