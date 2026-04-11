@@ -72,12 +72,6 @@ subprojects {
     plugins.withId("com.android.application") { configureBaseExtension() }
     plugins.withId("com.android.library") { configureBaseExtension() }
 
-    repositories {
-        google()
-        mavenCentral()
-        maven(url = "https://jitpack.io")
-    }
-
     afterEvaluate {
         if (plugins.hasPlugin("com.android.application") || plugins.hasPlugin("com.android.library")) {
             dependencies {                
