@@ -80,7 +80,7 @@ subprojects {
 
     afterEvaluate {
         if (plugins.hasPlugin("com.android.application") || plugins.hasPlugin("com.android.library")) {
-            dependencies {
+            dependencies {                
                 add("coreLibraryDesugaring", "com.android.tools:desugar_jdk_libs_nio:2.1.5")
             }
         }
@@ -89,10 +89,13 @@ subprojects {
 
 allprojects {
     tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile>().configureEach {
-        @Suppress("DEPRECATION")
-        kotlinOptions {
-            jvmTarget = "17"
+        compilerOptions {
+            jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17)
         }
+    }
+    tasks.withType<JavaCompile>().configureEach {
+        sourceCompatibility = "17"
+        targetCompatibility = "17"
     }
 }
 
