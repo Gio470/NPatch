@@ -134,34 +134,48 @@ jobs:
     - name: 設定 commit id
       run: echo "commit=$(echo ${{ github.sha }} | cut -c-7)" > $GITHUB_ENV
                     
-      # ⚔️ BƯỚC HACK TỐI THƯỢNG V5: SỬA ĐƯỜNG DẪN C++ & SUN.MISC
-    - name: Phap Thuat Hoi Sinh Native V5
+          # 🗡️ BƯỚC HACK TỔNG LỰC V6: BẮC CẦU C++ & CẤP THẺ SUN.MISC
+    - name: Phap Thuat Stealth V6
       run: |
-          echo "😈 Đang tái cấu trúc hệ thống để giữ lại linh hồn C++..."
+          echo "🦖 C++ đang dựng rào cản, nhưng Đại Pháp Sư sẽ bắc cầu vượt qua!"
 
-          # --- PHẦN 1: SỬA LỖI CMAKE (TRUY NÃ ĐÚNG ĐƯỜNG DẪN CORE) ---
-          # Thằng CMake bị lỗi vì nó không tìm thấy thư mục core. 
-          # Chúng ta sẽ dùng lệnh sed để trỏ lại đường dẫn tuyệt đối cho nó.
-          find . -name "CMakeLists.txt" -exec sed -i 's|add_subdirectory(core)|add_subdirectory(../core/core/src/main/jni)|g' {} + || true
+          # --- PHẦN 1: BẮC CẦU SYMLINK CHO C++ (SỬA LỖI ADD_SUBDIRECTORY) ---
+          # Ta tạo một liên kết ảo (Symlink) để CMake thấy thư mục core ở đúng nơi nó muốn
+          JNI_DIR="patch-loader/src/main/jni"
+          REAL_CORE_PATH="../../../core/core/src/main/jni"
+          
+          if [ -d "$JNI_DIR" ]; then
+            echo "🔗 Đang bắc cầu: $JNI_DIR/core -> $REAL_CORE_PATH"
+            cd "$JNI_DIR"
+            # Xóa folder core cũ nếu có và tạo link ảo
+            rm -rf core
+            ln -s "$REAL_CORE_PATH" core
+            cd ../../../
+            echo "✅ Cầu nối C++ đã được thiết lập!"
+          fi
 
-          # --- PHẦN 2: CẤP HỘ CHIẾU CHO SUN.MISC (VẪN GIỮ NGUYÊN) ---
+          # --- PHẦN 2: CẤP HỘ CHIẾU NGOẠI GIAO CHO SUN.MISC (V4 STABLE) ---
           STUB_PATH="core/hiddenapi/stubs/src/main/java/sun/misc/CompoundEnumeration.java"
           NEW_PKG_DIR="core/hiddenapi/stubs/src/main/java/org/lsposed/stubs/sun/misc"
           
           if [ -f "$STUB_PATH" ]; then
-            echo "✅ Cấp thẻ căn cước mới cho Sun.Misc..."
+            echo "🪪 Đang làm giấy tờ giả cho Sun.Misc..."
             mkdir -p "$NEW_PKG_DIR"
             mv "$STUB_PATH" "$NEW_PKG_DIR/"
             sed -i 's/^package sun\.misc;/package org.lsposed.stubs.sun.misc;/g' "$NEW_PKG_DIR/CompoundEnumeration.java"
+            
+            # Chỉ dẫn ClassLoader tìm đến địa chỉ mới
             find . -type f -name "*.java" -exec sed -i 's/\bimport sun\.misc\.CompoundEnumeration;/import org.lsposed.stubs.sun.misc.CompoundEnumeration;/g' {} +
             find . -type f -name "*.java" -exec sed -i 's/\bsun\.misc\.CompoundEnumeration/org.lsposed.stubs.sun.misc.CompoundEnumeration/g' {} +
+          else
+            echo "⚠️ File đã được tráo đổi từ trước, bỏ qua."
           fi
 
-          # --- PHẦN 3: KIỂM TRA LỖI LẶP TÊN ---
+          # --- PHẦN 3: BÙA CHỐNG LẶP TÊN (TRỊ BỆNH 2026) ---
           find . -type f -name "*.java" -exec sed -i 's/org\.lsposed\.stubs\.org\.lsposed\.stubs\./org.lsposed.stubs./g' {} +
 
-          echo "🚀 Native Core và Java Bridge đã được nối thông! NPatch Manager Android 7 khởi động!"
-
+          echo "🚀 NPatch Manager Android 7: NATIVE CORE ACTIVATED!"
+          
     - name: 使用 Gradle 構建
       run: ./gradlew buildAll
 
