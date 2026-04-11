@@ -249,7 +249,7 @@ subprojects {
 } 
 
     dependencies {
-        add("coreLibraryDesugaring", "com.android.tools:desugar_jdk_libs_nio:2.1.5")
+        implementation("com.android.tools:desugar_jdk_libs_nio:2.1.5")
    } 
 
 project(":core") {
