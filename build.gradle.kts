@@ -198,42 +198,27 @@ fun Project.configureBaseExtension() {
     }
 
     extensions.findByType(ApplicationAndroidComponentsExtension::class)?.let { androidComponents ->
-        val optimizeReleaseRes = task("optimizeReleaseRes").doLast {
+        tasks.register("optimizeReleaseRes") {
+            doLast {
             val isWindows = System.getProperty("os.name").lowercase().contains("windows")
             val aapt2Name = if (isWindows) "aapt2.exe" else "aapt2"
-
-            val aapt2 = File(
-                androidComponents.sdkComponents.sdkDirectory.get().asFile,
-                "build-tools/${androidBuildToolsVersion}/$aapt2Name"
-            )
-            val zip = java.nio.file.Paths.get(
-                project.buildDir.path,
-                "intermediates",
-                "optimized_processed_res",
-                "release",
-                "optimizeReleaseResources",
-                "resources-release-optimize.ap_"
-            )
-            val optimized = File("${zip}.opt")
-            val cmd = exec {
-                commandLine(
-                    aapt2, "optimize",
-                    "--collapse-resource-names",
-                    "--enable-sparse-encoding",
-                    "-o", optimized,
-                    zip
-                )
-                isIgnoreExitValue = false
-            }
-            if (cmd.exitValue == 0) {
-                delete(zip)
-                optimized.renameTo(zip.toFile())
+            val aapt2 = File(androidComponents.sdkComponents.sdkDirectory.get().asFile, "build-tools/${androidBuildToolsVersion}/$aapt2Name")
+            val zip = File(layout.buildDirectory.get().asFile, "intermediates/optimized_processed_res/release/optimizeReleaseResources/resources-release-optimize.ap_")
+            val optimized = File("${zip.absolutePath}.opt")
+                
+                project.exec {
+                    commandLine(aapt2, "optimize", "--collapse-resource-names", "--enable-sparse-encoding", "-o", optimized, zip)
+                }
+                if (optimized.exists()) {
+                    zip.delete()
+                    optimized.renameTo(zip)
+                }
             }
         }
 
         tasks.configureEach {
             if (name == "optimizeReleaseResources") {
-                finalizedBy(optimizeReleaseRes)
+                finalizedBy("optimizeReleaseRes")
             }
         }
     }
