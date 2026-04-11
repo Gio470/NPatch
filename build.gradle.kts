@@ -38,10 +38,18 @@ val (coreCommitCount, coreLatestTag) = FileRepositoryBuilder().setGitDir(rootPro
         }
     }.getOrNull() ?: (1145 to "1.0")
 
+val defaultManagerPackageName by extra("org.lsposed.npatch")
+val apiCode by extra(100)
+val verCode by extra(commitCount)
+val verName by extra("0.7.4-Frankenstein")
+val coreVerCode by extra(coreCommitCount)
+val coreVerName by extra(coreLatestTag)
 val androidMinSdkVersion by extra(24)
 val androidTargetSdkVersion by extra(36)
 val androidCompileSdkVersion by extra(36)
 val androidBuildToolsVersion by extra("36.1.0")
+val androidSourceCompatibility by extra(JavaVersion.VERSION_17)
+val androidTargetCompatibility by extra(JavaVersion.VERSION_17)
 
 tasks.register<Delete>("clean") {
     delete(layout.buildDirectory)
@@ -55,14 +63,14 @@ fun Project.configureBaseExtension() {
         defaultConfig {
             minSdk = androidMinSdkVersion
             targetSdk = androidTargetSdkVersion
-            versionCode = commitCount
-            versionName = "0.7.4-Frankenstein"
+            versionCode = verCode
+            versionName = verName
             multiDexEnabled = true
         }
 
         compileOptions {
-            sourceCompatibility = JavaVersion.VERSION_17
-            targetCompatibility = JavaVersion.VERSION_17
+            sourceCompatibility = androidSourceCompatibility
+            targetCompatibility = androidTargetCompatibility
             isCoreLibraryDesugaringEnabled = true
         }
     }
@@ -74,7 +82,7 @@ subprojects {
 
     afterEvaluate {
         if (plugins.hasPlugin("com.android.application") || plugins.hasPlugin("com.android.library")) {
-            dependencies {                
+            dependencies {              
                 add("coreLibraryDesugaring", "com.android.tools:desugar_jdk_libs_nio:2.1.5")
             }
         }
