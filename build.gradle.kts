@@ -55,6 +55,18 @@ tasks.register<Delete>("clean") {
     delete(layout.buildDirectory)
 }
 
+listOf("Debug", "Release").forEach { variant ->
+    tasks.register("build$variant") {
+        description = "Build NPatch with $variant"
+        dependsOn(tasks.findByPath(":jar:build$variant") ?: "jar:build$variant")
+        dependsOn(tasks.findByPath(":manager:build$variant") ?: "manager:build$variant")
+    }
+}
+
+tasks.register("buildAll") {
+    dependsOn("buildDebug", "buildRelease")
+}
+
 fun Project.configureBaseExtension() {
     extensions.findByType(BaseExtension::class)?.run {
         compileSdkVersion(androidCompileSdkVersion)
@@ -82,7 +94,7 @@ subprojects {
 
     afterEvaluate {
         if (plugins.hasPlugin("com.android.application") || plugins.hasPlugin("com.android.library")) {
-            dependencies {              
+            dependencies {                
                 add("coreLibraryDesugaring", "com.android.tools:desugar_jdk_libs_nio:2.1.5")
             }
         }
