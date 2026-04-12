@@ -134,50 +134,49 @@ jobs:
     - name: 設定 commit id
       run: echo "commit=$(echo ${{ github.sha }} | cut -c-7)" > $GITHUB_ENV
                     
-      # 🛡️ BƯỚC HACK TỔNG LỰC V7: BẮC CẦU C++ & ĐỊNH DANH LẠI TOÀN BỘ STUBS
-    - name: Phap Thuat Stealth V7
+      # 🛡️ BƯỚC HACK TỔNG LỰC V8: BẮC CẦU C++ & ĐỔI TÊN SUNP.MICSP 😈
+    - name: Phap Thuat Stealth V8
       run: |
-          echo "🦖 Đang triển khai đợt càn quét cuối cùng cho NPatch Android 7..."
+          echo "🦖 Đang thực hiện thuật tráo thân: sun.misc -> sunp.micsp!"
 
-          # --- PHẦN 1: BẮC CẦU C++ (GIỮ NGUYÊN V6) ---
+          # --- PHẦN 1: BẮC CẦU C++ (GIỮ CHO C KHÔNG ĐỘT TỬ) ---
           JNI_DIR="patch-loader/src/main/jni"
           REAL_CORE_PATH="../../../core/core/src/main/jni"
           if [ -d "$JNI_DIR" ]; then
-            echo "🔗 Đang thiết lập cầu nối C++..."
+            echo "🔗 Thiết lập cầu nối C++..."
             cd "$JNI_DIR" && rm -rf core && ln -s "$REAL_CORE_PATH" core && cd ../../../
           fi
 
-          # --- PHẦN 2: DIỆT TẬN GỐC SUN.MISC (CHIẾN THUẬT CÀN QUÉT) ---
-          echo "🔍 Đang truy quét xác ướp CompoundEnumeration..."
+          # --- PHẦN 2: CHIẾN THUẬT "SUNP.MICSP" (TRÁO TÊN THƯ MỤC) ---
+          echo "🔍 Truy lùng hang ổ sun/misc..."
           
-          # Tìm vị trí thực sự của file (bất kể nằm sâu cỡ nào trong Submodule)
-          FILE_LOC=$(find . -name "CompoundEnumeration.java" | head -n 1)
+          # 1. Tìm và đổi tên thư mục gốc của stub
+          OLD_DIR="core/hiddenapi/stubs/src/main/java/sun/misc"
+          NEW_DIR="core/hiddenapi/stubs/src/main/java/sunp/micsp"
           
-          if [ -n "$FILE_LOC" ]; then
-            echo "✅ Đã bắt sống mục tiêu tại: $FILE_LOC"
-            
-            # Tạo thư mục package mới: org.lsposed.stubs
-            NEW_DIR="core/hiddenapi/stubs/src/main/java/org/lsposed/stubs"
-            mkdir -p "$NEW_DIR"
-            
-            # Di chuyển file vào "vùng an toàn"
-            mv "$FILE_LOC" "$NEW_DIR/CompoundEnumeration.java"
-            
-            # Thay đổi khai báo package bên trong file đó
-            sed -i 's/package sun\.misc;/package org.lsposed.stubs;/g' "$NEW_DIR/CompoundEnumeration.java"
-            
-            # ÉP TOÀN BỘ DỰ ÁN thay đổi Import
-            echo "🔗 Đang đồng bộ hóa toàn bộ mạch máu mã nguồn..."
-            find . -type f -name "*.java" -exec sed -i 's/import sun\.misc\.CompoundEnumeration;/import org.lsposed.stubs.CompoundEnumeration;/g' {} +
-            find . -type f -name "*.java" -exec sed -i 's/sun\.misc\.CompoundEnumeration/org.lsposed.stubs.CompoundEnumeration/g' {} +
-          else
-            echo "⚠️ Mục tiêu đã tẩu thoát hoặc đã được xử lý từ trước!"
+          if [ -d "$OLD_DIR" ]; then
+            echo "✅ Đã bắt sống hang ổ, đang tiến hành đổi tên thư mục..."
+            mkdir -p "core/hiddenapi/stubs/src/main/java/sunp"
+            mv "$OLD_DIR" "$NEW_DIR"
+            # Xóa thư mục sun rỗng nếu cần
+            rm -rf "core/hiddenapi/stubs/src/main/java/sun"
           fi
 
-          # --- PHẦN 3: KIỂM TRA CHỐNG LẶP TÊN (BẢO HIỂM CUỐI CÙNG) ---
-          find . -type f -name "*.java" -exec sed -i 's/org\.lsposed\.stubs\.org\.lsposed\.stubs\./org.lsposed.stubs./g' {} +
+          # 2. Sửa nội dung file: Đổi package bên trong
+          if [ -f "$NEW_DIR/CompoundEnumeration.java" ]; then
+            echo "📝 Đang ghi đè package mới: sunp.micsp"
+            sed -i 's/^package sun\.misc;/package sunp.micsp;/g' "$NEW_DIR/CompoundEnumeration.java"
+          fi
 
-          echo "🚀 Hệ thống đã được thanh tẩy hoàn toàn! NPatch Manager Android 7 KHAI HOẢ!"
+          # 3. ÉP TOÀN BỘ DỰ ÁN (Sửa sạch import)
+          echo "🔗 Đang đồng bộ hóa import trên toàn bộ mặt trận..."
+          find . -type f -name "*.java" -exec sed -i 's/\bimport sun\.misc\.CompoundEnumeration;/import sunp.micsp.CompoundEnumeration;/g' {} +
+          find . -type f -name "*.java" -exec sed -i 's/\bsun\.misc\.CompoundEnumeration/sunp.micsp.CompoundEnumeration/g' {} +
+          
+          # Bảo hiểm cuối cùng: Sửa những chỗ lỡ bị sửa sai ở các bản V trước
+          find . -type f -name "*.java" -exec sed -i 's/org\.lsposed\.stubs\.sun\.misc/sunp.micsp/g' {} +
+
+          echo "🚀 Tên mới đã được đăng ký! sunp.micsp đã sẵn sàng vượt biên!"
           
     - name: 使用 Gradle 構建
       run: ./gradlew buildAll
