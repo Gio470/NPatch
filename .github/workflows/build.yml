@@ -152,11 +152,11 @@ jobs:
           
           # 1. Tìm và đổi tên thư mục gốc của stub
           OLD_DIR="core/hiddenapi/stubs/src/main/java/sun/misc"
-          NEW_DIR="core/hiddenapi/stubs/src/main/java/sunp/micsp"
+          NEW_DIR="core/hiddenapi/stubs/src/main/java/npatch/utils"
           
           if [ -d "$OLD_DIR" ]; then
             echo "✅ Đã bắt sống hang ổ, đang tiến hành đổi tên thư mục..."
-            mkdir -p "core/hiddenapi/stubs/src/main/java/sunp"
+            mkdir -p "core/hiddenapi/stubs/src/main/java/npatch"
             mv "$OLD_DIR" "$NEW_DIR"
             # Xóa thư mục sun rỗng nếu cần
             rm -rf "core/hiddenapi/stubs/src/main/java/sun"
@@ -164,17 +164,17 @@ jobs:
 
           # 2. Sửa nội dung file: Đổi package bên trong
           if [ -f "$NEW_DIR/CompoundEnumeration.java" ]; then
-            echo "📝 Đang ghi đè package mới: sunp.micsp"
-            sed -i 's/^package sun\.misc;/package sunp.micsp;/g' "$NEW_DIR/CompoundEnumeration.java"
+            echo "📝 Đang ghi đè package mới: npatch.utils"
+            sed -i 's/^package sun\.misc;/package npatch.utils;/g' "$NEW_DIR/CompoundEnumeration.java"
           fi
 
           # 3. ÉP TOÀN BỘ DỰ ÁN (Sửa sạch import)
           echo "🔗 Đang đồng bộ hóa import trên toàn bộ mặt trận..."
-          find . -type f -name "*.java" -exec sed -i 's/\bimport sun\.misc\.CompoundEnumeration;/import sunp.micsp.CompoundEnumeration;/g' {} +
-          find . -type f -name "*.java" -exec sed -i 's/\bsun\.misc\.CompoundEnumeration/sunp.micsp.CompoundEnumeration/g' {} +
+          find . -type f -name "*.java" -exec sed -i 's/\bimport sun\.misc\.CompoundEnumeration;/import npatch.utils.CompoundEnumeration;/g' {} +
+          find . -type f -name "*.java" -exec sed -i 's/\bsun\.misc\.CompoundEnumeration/npatch.utils.CompoundEnumeration/g' {} +
           
           # Bảo hiểm cuối cùng: Sửa những chỗ lỡ bị sửa sai ở các bản V trước
-          find . -type f -name "*.java" -exec sed -i 's/org\.lsposed\.stubs\.sun\.misc/sunp.micsp/g' {} +
+          find . -type f -name "*.java" -exec sed -i 's/org\.lsposed\.stubs\.sun\.misc/npatch.utils/g' {} +
 
           echo "🚀 Tên mới đã được đăng ký! sunp.micsp đã sẵn sàng vượt biên!"
           
