@@ -134,47 +134,50 @@ jobs:
     - name: 設定 commit id
       run: echo "commit=$(echo ${{ github.sha }} | cut -c-7)" > $GITHUB_ENV
                     
-          # 🗡️ BƯỚC HACK TỔNG LỰC V6: BẮC CẦU C++ & CẤP THẺ SUN.MISC
-    - name: Phap Thuat Stealth V6
+      # 🛡️ BƯỚC HACK TỔNG LỰC V7: BẮC CẦU C++ & ĐỊNH DANH LẠI TOÀN BỘ STUBS
+    - name: Phap Thuat Stealth V7
       run: |
-          echo "🦖 C++ đang dựng rào cản, nhưng Đại Pháp Sư sẽ bắc cầu vượt qua!"
+          echo "🦖 Đang triển khai đợt càn quét cuối cùng cho NPatch Android 7..."
 
-          # --- PHẦN 1: BẮC CẦU SYMLINK CHO C++ (SỬA LỖI ADD_SUBDIRECTORY) ---
-          # Ta tạo một liên kết ảo (Symlink) để CMake thấy thư mục core ở đúng nơi nó muốn
+          # --- PHẦN 1: BẮC CẦU C++ (GIỮ NGUYÊN V6) ---
           JNI_DIR="patch-loader/src/main/jni"
           REAL_CORE_PATH="../../../core/core/src/main/jni"
-          
           if [ -d "$JNI_DIR" ]; then
-            echo "🔗 Đang bắc cầu: $JNI_DIR/core -> $REAL_CORE_PATH"
-            cd "$JNI_DIR"
-            # Xóa folder core cũ nếu có và tạo link ảo
-            rm -rf core
-            ln -s "$REAL_CORE_PATH" core
-            cd ../../../
-            echo "✅ Cầu nối C++ đã được thiết lập!"
+            echo "🔗 Đang thiết lập cầu nối C++..."
+            cd "$JNI_DIR" && rm -rf core && ln -s "$REAL_CORE_PATH" core && cd ../../../
           fi
 
-          # --- PHẦN 2: CẤP HỘ CHIẾU NGOẠI GIAO CHO SUN.MISC (V4 STABLE) ---
-          STUB_PATH="core/hiddenapi/stubs/src/main/java/sun/misc/CompoundEnumeration.java"
-          NEW_PKG_DIR="core/hiddenapi/stubs/src/main/java/org/lsposed/stubs/sun/misc"
+          # --- PHẦN 2: DIỆT TẬN GỐC SUN.MISC (CHIẾN THUẬT CÀN QUÉT) ---
+          echo "🔍 Đang truy quét xác ướp CompoundEnumeration..."
           
-          if [ -f "$STUB_PATH" ]; then
-            echo "🪪 Đang làm giấy tờ giả cho Sun.Misc..."
-            mkdir -p "$NEW_PKG_DIR"
-            mv "$STUB_PATH" "$NEW_PKG_DIR/"
-            sed -i 's/^package sun\.misc;/package org.lsposed.stubs.sun.misc;/g' "$NEW_PKG_DIR/CompoundEnumeration.java"
+          # Tìm vị trí thực sự của file (bất kể nằm sâu cỡ nào trong Submodule)
+          FILE_LOC=$(find . -name "CompoundEnumeration.java" | head -n 1)
+          
+          if [ -n "$FILE_LOC" ]; then
+            echo "✅ Đã bắt sống mục tiêu tại: $FILE_LOC"
             
-            # Chỉ dẫn ClassLoader tìm đến địa chỉ mới
-            find . -type f -name "*.java" -exec sed -i 's/\bimport sun\.misc\.CompoundEnumeration;/import org.lsposed.stubs.sun.misc.CompoundEnumeration;/g' {} +
-            find . -type f -name "*.java" -exec sed -i 's/\bsun\.misc\.CompoundEnumeration/org.lsposed.stubs.sun.misc.CompoundEnumeration/g' {} +
+            # Tạo thư mục package mới: org.lsposed.stubs
+            NEW_DIR="core/hiddenapi/stubs/src/main/java/org/lsposed/stubs"
+            mkdir -p "$NEW_DIR"
+            
+            # Di chuyển file vào "vùng an toàn"
+            mv "$FILE_LOC" "$NEW_DIR/CompoundEnumeration.java"
+            
+            # Thay đổi khai báo package bên trong file đó
+            sed -i 's/package sun\.misc;/package org.lsposed.stubs;/g' "$NEW_DIR/CompoundEnumeration.java"
+            
+            # ÉP TOÀN BỘ DỰ ÁN thay đổi Import
+            echo "🔗 Đang đồng bộ hóa toàn bộ mạch máu mã nguồn..."
+            find . -type f -name "*.java" -exec sed -i 's/import sun\.misc\.CompoundEnumeration;/import org.lsposed.stubs.CompoundEnumeration;/g' {} +
+            find . -type f -name "*.java" -exec sed -i 's/sun\.misc\.CompoundEnumeration/org.lsposed.stubs.CompoundEnumeration/g' {} +
           else
-            echo "⚠️ File đã được tráo đổi từ trước, bỏ qua."
+            echo "⚠️ Mục tiêu đã tẩu thoát hoặc đã được xử lý từ trước!"
           fi
 
-          # --- PHẦN 3: BÙA CHỐNG LẶP TÊN (TRỊ BỆNH 2026) ---
+          # --- PHẦN 3: KIỂM TRA CHỐNG LẶP TÊN (BẢO HIỂM CUỐI CÙNG) ---
           find . -type f -name "*.java" -exec sed -i 's/org\.lsposed\.stubs\.org\.lsposed\.stubs\./org.lsposed.stubs./g' {} +
 
-          echo "🚀 NPatch Manager Android 7: NATIVE CORE ACTIVATED!"
+          echo "🚀 Hệ thống đã được thanh tẩy hoàn toàn! NPatch Manager Android 7 KHAI HOẢ!"
           
     - name: 使用 Gradle 構建
       run: ./gradlew buildAll
