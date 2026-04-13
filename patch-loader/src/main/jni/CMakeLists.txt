@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.31.1)
 project(npatch)
 
 set(CMAKE_CXX_STANDARD 23)
-set(CORE_ROOT "../../../../core/src/main/jni")
+set(CORE_ROOT "${CMAKE_SOURCE_DIR}/core/src/main/jni")
 
 add_subdirectory(${CORE_ROOT} core_build)
 
