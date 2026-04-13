@@ -45,6 +45,39 @@ jobs:
         path: out/shared_memory_dex/*
         retention-days: 7
 
+    - name: 🛡️ Fix Submodule sun.misc
+      run: |
+          echo "🔍 Searching in submodules..."
+          # Dùng find để quét toàn bộ, bất kể nó nằm sâu trong core hay submodule nào
+          TARGET_FILE=$(find . -name "CompoundEnumeration.java" -path "*/sun/misc/*" | head -n 1)
+          
+          if [ -n "$TARGET_FILE" ]; then
+            echo "✅ Target found: $TARGET_FILE"
+            
+            # 1. Xác định thư mục gốc của submodule chứa file đó
+            # Giả định cấu trúc là .../src/main/java/sun/misc/...
+            BASE_JAVA_DIR=$(echo "$TARGET_FILE" | sed 's|sun/misc/CompoundEnumeration.java||')
+            NEW_DIR="${BASE_JAVA_DIR}internal/stubs"
+            
+            # 2. Tạo thư mục mới và di chuyển file
+            mkdir -p "$NEW_DIR"
+            mv "$TARGET_FILE" "$NEW_DIR/"
+            
+            # 3. Đổi package (Dùng dấu | thay cho / để sed không bị loạn)
+            sed -i 's|package sun.misc;|package internal.stubs;|g' "$NEW_DIR/CompoundEnumeration.java"
+            
+            # 4. Sửa toàn bộ Import trong project
+            echo "🔗 Syncing imports..."
+            find . -type f -name "*.java" -exec sed -i 's|import sun.misc.CompoundEnumeration;|import internal.stubs.CompoundEnumeration;|g' {} +
+            find . -type f -name "*.java" -exec sed -i 's|sun.misc.CompoundEnumeration|internal.stubs.CompoundEnumeration|g' {} +
+            
+            # 5. Xóa thư mục sun rỗng để tránh module jdk.unsupported nhận vơ
+            rm -rf "${BASE_JAVA_DIR}sun"
+            echo "🚀 Submodule fixed successfully!"
+          else
+            echo "⚠️ File not found. Check if submodules are checked out correctly."
+          fi
+
     - name: 設定快取
       uses: actions/cache@v4
       with:
