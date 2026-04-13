@@ -142,6 +142,11 @@ jobs:
     - name: 設定 Gradle
       uses: gradle/actions/setup-gradle@v5
 
+    - name: Setup Android NDK
+      uses: android-actions/setup-android@v3
+      with:
+          ndk-version: "25.2.9519653" # Bản này ổn định và ít "kén" hơn bản 27
+
     - name: 設定 Android SDK
       uses: android-actions/setup-android@v3
 
