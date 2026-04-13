@@ -96,9 +96,9 @@ jobs:
             # Tạo Stub cho ParseUtil
             echo -e "package sunp.net.www;\npublic class ParseUtil { public static String encodePath(String p, boolean b) { return p; } }" > "core/core/src/main/java/sunp/net/www/ParseUtil.java"
             
-            # Tạo Stub cho Handler
-            echo -e "package sunp.net.www.protocol.jar;\nimport java.net.URLStreamHandler;\npublic class Handler extends URLStreamHandler { protected java.net.URLConnection openConnection(java.net.URL u) { return null; } }" > "$STUB_DIR/Handler.java"
-            
+            # Tạo Stub cho Handler (Đã fix thêm throws java.io.IOException)
+            echo -e "package sunp.net.www.protocol.jar;\nimport java.net.URLStreamHandler;\npublic class Handler extends URLStreamHandler { protected java.net.URLConnection openConnection(java.net.URL u) throws java.io.IOException { return null; } }" > "$STUB_DIR/Handler.java"
+
             echo "🚀 Đã 'vá' xong submodule mà không cần Fork!"
           fi
 
