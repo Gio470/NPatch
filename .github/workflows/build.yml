@@ -24,6 +24,17 @@ jobs:
         submodules: 'recursive'
         fetch-depth: 0
 
+    - name: 😈 Bạo lực Tróc Nã Submodule
+      run: |
+          # Đồng bộ lại toàn bộ đường dẫn submodule
+          git submodule sync --recursive
+          # Ép tải về bằng mọi giá, kể cả các folder lồng nhau
+          git submodule update --init --force --recursive
+          
+          echo "==== SOI RUỘT CORE SAU KHI ÉP TẢI ===="
+          # Hiển thị xem bên trong có gì để làm bằng chứng
+          find core/ -name "CMakeLists.txt"
+
     - name: 🧙‍♂️ Pháp sư chế tạo SharedMemory Dex
       run: |
         mkdir -p out/shared_memory_dex
