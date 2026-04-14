@@ -4,7 +4,7 @@ project(npatch)
 set(CMAKE_CXX_STANDARD 23)
 
 # Tự động quét và tìm file CMakeLists.txt sâu bên trong đống lõi core/core...
-file(GLOB_RECURSE CORE_SEARCH "${CMAKE_SOURCE_DIR}/core/**/src/main/jni/CMakeLists.txt")
+file(GLOB_RECURSE CORE_SEARCH "${CMAKE_SOURCE_DIR}/core/**/src/main/jni/")
 list(GET CORE_SEARCH 0 ACTUAL_CORE_FILE)
 
 if(ACTUAL_CORE_FILE)
