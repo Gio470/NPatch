@@ -3,11 +3,17 @@ project(npatch)
 
 set(CMAKE_CXX_STANDARD 23)
 
-get_filename_component(NPATCH_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/../../../../" ABSOLUTE)
+# Tự động quét và tìm file CMakeLists.txt sâu bên trong đống lõi core/core...
+file(GLOB_RECURSE CORE_SEARCH "${CMAKE_SOURCE_DIR}/core/**/src/main/jni/CMakeLists.txt")
+list(GET CORE_SEARCH 0 ACTUAL_CORE_FILE)
 
-set(CORE_ROOT "${NPATCH_ROOT}/core/core/src/main/jni")
-
-add_subdirectory("${CORE_ROOT}" "core_build")
+if(ACTUAL_CORE_FILE)
+    get_filename_component(CORE_JNI_DIR "${ACTUAL_CORE_FILE}" DIRECTORY)
+    message(STATUS "🔮 Đã bắt sống hang ổ tại: ${CORE_JNI_DIR}")
+    add_subdirectory("${CORE_JNI_DIR}" "core_build")
+else()
+    message(FATAL_ERROR "💀 Vẫn không thấy xác!")
+endif()
 
 aux_source_directory(src SRC_LIST)
 aux_source_directory(src/jni SRC_LIST)
