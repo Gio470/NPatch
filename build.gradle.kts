@@ -118,12 +118,6 @@ fun Project.configureBaseExtension() {
                 }
             }
         }
-
-        lint {
-            abortOnError = false
-            checkReleaseBuilds = false
-            checkDependencies = false
-        }       
     }           
 }
 
@@ -170,7 +164,11 @@ project(":core") {
 allprojects {
     tasks.configureEach {
         if (name.contains("lint", ignoreCase = true)) {
-            mustRunAfter(tasks.matching { it.name.contains("copyDex", ignoreCase = true) })
+            mustRunAfter(tasks.matching { it.name.contains("copy", ignoreCase = true) })
+            
+            if (name.contains("Vital")) {
+                enabled = false 
+            }
         }
     }
 }
