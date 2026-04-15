@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.31.1)
 project(npatch)
 
 set(CMAKE_CXX_STANDARD 23)
-add_subdirectory("${CORE_ROOT}")
+add_subdirectory(${CORE_ROOT} core)
 
 aux_source_directory(src SRC_LIST)
 aux_source_directory(src/jni SRC_LIST)
