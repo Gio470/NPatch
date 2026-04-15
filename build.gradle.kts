@@ -88,10 +88,10 @@ fun Project.configureBaseExtension() {
 
             externalNativeBuild {
                 cmake {
-                    arguments += "-DEXTERNAL_ROOT=${File(rootDir.absolutePath, "core/external")}"
-                    arguments += "-DCORE_ROOT=${File(rootDir.absolutePath, 
-                    "core/core/src/main/jni")}"
-                    abiFilters("arm64-v8a", "x86_64")
+                    arguments.add("-DEXTERNAL_ROOT=${File(rootDir.absolutePath, "core/external")}) "
+                    arguments.add("-DCORE_ROOT=${File(rootDir.absolutePath, 
+                    "core/core/src/main/jni")})"
+                    abiFilters.add("arm64-v8a", "x86_64")
                     val flags = arrayOf(
                         "-Wall",
                         "-Qunused-arguments",
@@ -106,9 +106,9 @@ fun Project.configureBaseExtension() {
                         "-Wno-unused-value",
                         "-D__FILE__=__FILE_NAME__",
                     )
-                    cppFlags("-std=c++20", *flags)
-                    cFlags("-std=c18", *flags)
-                    arguments(
+                    cppFlags.add("-std=c++20", *flags)
+                    cFlags.add("-std=c18", *flags)
+                    arguments.add(
                         "-DCMAKE_EXPORT_COMPILE_COMMANDS=ON",
                         "-DVERSION_CODE=$verCode",
                         "-DVERSION_NAME=$verName",
