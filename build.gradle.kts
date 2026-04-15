@@ -122,9 +122,60 @@ fun Project.configureBaseExtension() {
             targetCompatibility = androidTargetCompatibility
             isCoreLibraryDesugaringEnabled = true
         }
-    }
-}
 
+        buildTypes {
+            all {
+                signingConfig = if (signingConfigs["config"].storeFile != null) signingConfigs["config"] else signingConfigs["debug"]
+            }
+            named("debug") {
+                externalNativeBuild {
+                    cmake {
+                        arguments.addAll(
+                            arrayOf(
+                                "-DCMAKE_CXX_FLAGS_DEBUG=-Og",
+                                "-DCMAKE_C_FLAGS_DEBUG=-Og",
+                            )
+                        )
+                    }
+                }
+            }
+            named("release") {
+                signingConfig = null
+                externalNativeBuild {
+                    cmake {
+                        val flags = arrayOf(
+                            "-Wl,--exclude-libs,ALL",
+                            "-ffunction-sections",
+                            "-fdata-sections",
+                            "-Wl,--gc-sections",
+                            "-fno-unwind-tables",
+                            "-fno-asynchronous-unwind-tables",
+                            "-flto=thin",
+                            "-Wl,--thinlto-cache-policy,cache_size_bytes=300m",
+                            "-Wl,--thinlto-cache-dir=${layout.buildDirectory.get().asFile.absolutePath}/.lto-cache", 
+                        )
+                        cppFlags.addAll(flags)
+                        cFlags.addAll(flags)
+                        val configFlags = arrayOf(
+                            "-Oz",
+                            "-DNDEBUG"
+                        ).joinToString(" ")
+                        arguments.addAll(
+                            arrayOf(
+                                "-DCMAKE_CXX_FLAGS_RELEASE=$configFlags",
+                                "-DCMAKE_CXX_FLAGS_RELWITHDEBINFO=$configFlags",
+                                "-DCMAKE_C_FLAGS_RELEASE=$configFlags",
+                                "-DCMAKE_C_FLAGS_RELWITHDEBINFO=$configFlags",
+                                "-DDEBUG_SYMBOLS_PATH=${layout.buildDirectory.get().asFile.absolutePath}/symbols", 
+                            )
+                        )
+                    }
+                }
+            }
+        }
+    }
+
+        
 subprojects {
     plugins.withId("com.android.application") { configureBaseExtension() }
     plugins.withId("com.android.library") { configureBaseExtension() }
