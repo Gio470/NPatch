@@ -47,6 +47,7 @@ val coreVerName by extra(coreLatestTag)
 val androidMinSdkVersion by extra(24)
 val androidTargetSdkVersion by extra(36)
 val androidCompileSdkVersion by extra(36)
+val androidCompileNdkVersion by extra("29.0.13599879")
 val androidBuildToolsVersion by extra("36.1.0")
 val androidSourceCompatibility by extra(JavaVersion.VERSION_17)
 val androidTargetCompatibility by extra(JavaVersion.VERSION_17)
@@ -72,12 +73,48 @@ fun Project.configureBaseExtension() {
         compileSdkVersion(androidCompileSdkVersion)
         buildToolsVersion = androidBuildToolsVersion
 
+        externalNativeBuild.cmake {
+            version = "3.29.8+"
+            buildStagingDirectory = layout.buildDirectory.get().asFile
+        }
+        
         defaultConfig {
             minSdk = androidMinSdkVersion
             targetSdk = androidTargetSdkVersion
             versionCode = verCode
             versionName = verName
             multiDexEnabled = true
+        }
+
+            externalNativeBuild {
+                cmake {
+                    arguments += "-DEXTERNAL_ROOT=${File(rootDir.absolutePath, "core/external")}"
+                    arguments += "-DCORE_ROOT=${File(rootDir.absolutePath, 
+                    "core/core/src/main/jni")}"
+                    abiFilters("arm64-v8a", "x86_64")
+                    val flags = arrayOf(
+                        "-Wall",
+                        "-Qunused-arguments",
+                        "-Wno-gnu-string-literal-operator-template",
+                        "-fno-rtti",
+                        "-fvisibility=hidden",
+                        "-fvisibility-inlines-hidden",
+                        "-fno-exceptions",
+                        "-fno-stack-protector",
+                        "-fomit-frame-pointer",
+                        "-Wno-builtin-macro-redefined",
+                        "-Wno-unused-value",
+                        "-D__FILE__=__FILE_NAME__",
+                    )
+                    cppFlags("-std=c++20", *flags)
+                    cFlags("-std=c18", *flags)
+                    arguments(
+                        "-DCMAKE_EXPORT_COMPILE_COMMANDS=ON",
+                        "-DVERSION_CODE=$verCode",
+                        "-DVERSION_NAME=$verName",
+                    )
+                }
+            }
         }
 
         compileOptions {
