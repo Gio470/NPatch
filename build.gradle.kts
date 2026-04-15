@@ -161,10 +161,10 @@ project(":core") {
     }
 }
 
-allprojects {
-    tasks.configureEach       
-        if (name.contains("lint", ignoreCase = true)) {     
-           enabled = false
+gradle.taskGraph.whenReady {
+    allTasks.forEach { task ->
+        if (task.name.contains("lint", ignoreCase = true)) {
+            task.enabled = false
         }
     }
 }
