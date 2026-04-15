@@ -47,7 +47,7 @@ val coreVerName by extra(coreLatestTag)
 val androidMinSdkVersion by extra(24)
 val androidTargetSdkVersion by extra(36)
 val androidCompileSdkVersion by extra(36)
-val androidCompileNdkVersion by extra("29.0.13599879")
+val androidCompileNdkVersion by extra("29.0.13599879") // 🛠️ NDK PHỤC HỒI
 val androidBuildToolsVersion by extra("36.1.0")
 val androidSourceCompatibility by extra(JavaVersion.VERSION_17)
 val androidTargetCompatibility by extra(JavaVersion.VERSION_17)
@@ -58,7 +58,6 @@ tasks.register<Delete>("clean") {
 
 listOf("Debug", "Release").forEach { variant ->
     tasks.register("build$variant") {
-        description = "Build NPatch with $variant"
         dependsOn(tasks.findByPath(":jar:build$variant") ?: "jar:build$variant")
         dependsOn(tasks.findByPath(":manager:build$variant") ?: "manager:build$variant")
     }
@@ -72,47 +71,31 @@ fun Project.configureBaseExtension() {
     extensions.findByType(BaseExtension::class)?.run {
         compileSdkVersion(androidCompileSdkVersion)
         buildToolsVersion = androidBuildToolsVersion
+        ndkVersion = androidCompileNdkVersion // 🛠️ KÍCH HOẠT NDK TẠI ĐÂY!
 
         externalNativeBuild.cmake {
             version = "3.29.8+"
             buildStagingDirectory = layout.buildDirectory.get().asFile
         }
-        
+
         defaultConfig {
             minSdk = androidMinSdkVersion
             targetSdk = androidTargetSdkVersion
             versionCode = verCode
             versionName = verName
             multiDexEnabled = true
-        }
 
             externalNativeBuild {
                 cmake {
-                    arguments.add("-DEXTERNAL_ROOT=${File(rootDir.absolutePath, "core/external")}) "
-                    arguments.add("-DCORE_ROOT=${File(rootDir.absolutePath, 
-                    "core/core/src/main/jni")})"
-                    abiFilters.add("arm64-v8a", "x86_64")
+                    arguments += "-DEXTERNAL_ROOT=${File(rootDir.absolutePath, "core/external")}"
+                    arguments += "-DCORE_ROOT=${File(rootDir.absolutePath, "core/core/src/main/jni")}"
+                    abiFilters("arm64-v8a", "x86_64")
                     val flags = arrayOf(
-                        "-Wall",
-                        "-Qunused-arguments",
-                        "-Wno-gnu-string-literal-operator-template",
-                        "-fno-rtti",
-                        "-fvisibility=hidden",
-                        "-fvisibility-inlines-hidden",
-                        "-fno-exceptions",
-                        "-fno-stack-protector",
-                        "-fomit-frame-pointer",
-                        "-Wno-builtin-macro-redefined",
-                        "-Wno-unused-value",
-                        "-D__FILE__=__FILE_NAME__",
+                        "-Wall", "-fno-rtti", "-fvisibility=hidden", "-fno-exceptions",
+                        "-D__FILE__=__FILE_NAME__"
                     )
-                    cppFlags.add("-std=c++20", *flags)
-                    cFlags.add("-std=c18", *flags)
-                    arguments.add(
-                        "-DCMAKE_EXPORT_COMPILE_COMMANDS=ON",
-                        "-DVERSION_CODE=$verCode",
-                        "-DVERSION_NAME=$verName",
-                    )
+                    cppFlags("-std=c++20", *flags)
+                    cFlags("-std=c18", *flags)
                 }
             }
         }
@@ -124,65 +107,27 @@ fun Project.configureBaseExtension() {
         }
 
         buildTypes {
-            all {
-                signingConfig = if (signingConfigs["config"].storeFile != null) signingConfigs["config"] else signingConfigs["debug"]
-            }
             named("debug") {
-                externalNativeBuild {
-                    cmake {
-                        arguments.addAll(
-                            arrayOf(
-                                "-DCMAKE_CXX_FLAGS_DEBUG=-Og",
-                                "-DCMAKE_C_FLAGS_DEBUG=-Og",
-                            )
-                        )
-                    }
+                externalNativeBuild.cmake {
+                    arguments("-DCMAKE_CXX_FLAGS_DEBUG=-Og", "-DCMAKE_C_FLAGS_DEBUG=-Og")
                 }
             }
             named("release") {
-                signingConfig = null
-                externalNativeBuild {
-                    cmake {
-                        val flags = arrayOf(
-                            "-Wl,--exclude-libs,ALL",
-                            "-ffunction-sections",
-                            "-fdata-sections",
-                            "-Wl,--gc-sections",
-                            "-fno-unwind-tables",
-                            "-fno-asynchronous-unwind-tables",
-                            "-flto=thin",
-                            "-Wl,--thinlto-cache-policy,cache_size_bytes=300m",
-                            "-Wl,--thinlto-cache-dir=${layout.buildDirectory.get().asFile.absolutePath}/.lto-cache", 
-                        )
-                        cppFlags.addAll(flags)
-                        cFlags.addAll(flags)
-                        val configFlags = arrayOf(
-                            "-Oz",
-                            "-DNDEBUG"
-                        ).joinToString(" ")
-                        arguments.addAll(
-                            arrayOf(
-                                "-DCMAKE_CXX_FLAGS_RELEASE=$configFlags",
-                                "-DCMAKE_CXX_FLAGS_RELWITHDEBINFO=$configFlags",
-                                "-DCMAKE_C_FLAGS_RELEASE=$configFlags",
-                                "-DCMAKE_C_FLAGS_RELWITHDEBINFO=$configFlags",
-                                "-DDEBUG_SYMBOLS_PATH=${layout.buildDirectory.get().asFile.absolutePath}/symbols", 
-                            )
-                        )
-                    }
+                externalNativeBuild.cmake {
+                    arguments("-DCMAKE_CXX_FLAGS_RELEASE=-Oz -DNDEBUG", "-DCMAKE_C_FLAGS_RELEASE=-Oz -DNDEBUG")
                 }
             }
         }
     }
+}
 
-        
 subprojects {
     plugins.withId("com.android.application") { configureBaseExtension() }
     plugins.withId("com.android.library") { configureBaseExtension() }
 
     afterEvaluate {
         if (plugins.hasPlugin("com.android.application") || plugins.hasPlugin("com.android.library")) {
-            dependencies {                
+            dependencies {
                 add("coreLibraryDesugaring", "com.android.tools:desugar_jdk_libs_nio:2.1.5")
             }
         }
