@@ -121,8 +121,7 @@ fun Project.configureBaseExtension() {
             isCoreLibraryDesugaringEnabled = true
         }
 
-        buildTypes {
-            all {                
+        buildTypes {                
             named("debug") {
                 externalNativeBuild {
                     cmake {
@@ -169,7 +168,7 @@ fun Project.configureBaseExtension() {
                 }
            }
       }           
- }
+ } 
 
 subprojects {
     plugins.withId("com.android.application") { configureBaseExtension() }
@@ -217,4 +216,5 @@ gradle.taskGraph.whenReady {
             task.enabled = false
         }
     }
-}
+} 
+ 
