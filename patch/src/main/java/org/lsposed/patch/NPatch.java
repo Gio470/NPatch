@@ -224,7 +224,7 @@ public class NPatch {
                 }
                 var entry = (KeyStore.PrivateKeyEntry) keyStore.getEntry(keystoreArgs.get(2), new KeyStore.PasswordProtection(keystoreArgs.get(3).toCharArray()));
                 new SigningExtension(SigningOptions.builder()
-                        .setMinSdkVersion(27)
+                        .setMinSdkVersion(24)
                         .setV2SigningEnabled(true)
                         .setCertificates((X509Certificate[]) entry.getCertificateChain())
                         .setKey(entry.getPrivateKey())
