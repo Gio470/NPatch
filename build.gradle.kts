@@ -166,9 +166,10 @@ fun Project.configureBaseExtension() {
                         )
                     }
                 }
-           }
-      }           
- } 
+            }
+        }           
+    }
+}
 
 subprojects {
     plugins.withId("com.android.application") { configureBaseExtension() }
