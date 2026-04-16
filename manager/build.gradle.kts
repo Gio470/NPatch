@@ -21,6 +21,10 @@ android {
         applicationId = defaultManagerPackageName
     }
 
+    compileOptions {
+        isCoreLibraryDesugaringEnabled = true
+    } 
+
     androidResources {
         noCompress.add(".so")
     }
@@ -127,4 +131,5 @@ dependencies {
     debugImplementation(npatch.androidx.compose.ui.tooling)
     debugImplementation(npatch.androidx.customview)
     debugImplementation(npatch.androidx.customview.poolingcontainer)
+    coreLibraryDesugaring("com.android.tools:desugar_jdk_libs_nio:2.1.5")
 }
