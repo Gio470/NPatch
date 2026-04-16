@@ -91,11 +91,26 @@ fun Project.configureBaseExtension() {
                     arguments += "-DCORE_ROOT=${File(rootDir.absolutePath, "core/core/src/main/jni")}"
                     abiFilters("arm64-v8a", "x86_64")
                     val flags = arrayOf(
-                        "-Wall", "-fno-rtti", "-fvisibility=hidden", "-fno-exceptions",
-                        "-D__FILE__=__FILE_NAME__"
+                        "-Wall",
+                        "-Qunused-arguments",
+                        "-Wno-gnu-string-literal-operator-template",
+                        "-fno-rtti",
+                        "-fvisibility=hidden",
+                        "-fvisibility-inlines-hidden",
+                        "-fno-exceptions",
+                        "-fno-stack-protector",
+                        "-fomit-frame-pointer",
+                        "-Wno-builtin-macro-redefined",
+                        "-Wno-unused-value",
+                        "-D__FILE__=__FILE_NAME__",
                     )
                     cppFlags("-std=c++20", *flags)
                     cFlags("-std=c18", *flags)
+                    arguments(
+                        "-DCMAKE_EXPORT_COMPILE_COMMANDS=ON",
+                        "-DVERSION_CODE=$verCode",
+                        "-DVERSION_NAME=$verName",
+                    )
                 }
             }
         }
@@ -107,19 +122,54 @@ fun Project.configureBaseExtension() {
         }
 
         buildTypes {
+            all {                
             named("debug") {
-                externalNativeBuild.cmake {
-                    arguments("-DCMAKE_CXX_FLAGS_DEBUG=-Og", "-DCMAKE_C_FLAGS_DEBUG=-Og")
+                externalNativeBuild {
+                    cmake {
+                        arguments.addAll(
+                            arrayOf(
+                                "-DCMAKE_CXX_FLAGS_DEBUG=-Og",
+                                "-DCMAKE_C_FLAGS_DEBUG=-Og",
+                            )
+                        )
+                    }
                 }
             }
             named("release") {
-                externalNativeBuild.cmake {
-                    arguments("-DCMAKE_CXX_FLAGS_RELEASE=-Oz -DNDEBUG", "-DCMAKE_C_FLAGS_RELEASE=-Oz -DNDEBUG")
+                signingConfig = null
+                externalNativeBuild {
+                    cmake {
+                        val flags = arrayOf(
+                            "-Wl,--exclude-libs,ALL",
+                            "-ffunction-sections",
+                            "-fdata-sections",
+                            "-Wl,--gc-sections",
+                            "-fno-unwind-tables",
+                            "-fno-asynchronous-unwind-tables",
+                            "-flto=thin",
+                            "-Wl,--thinlto-cache-policy,cache_size_bytes=300m",
+                            "-Wl,--thinlto-cache-dir=${layout.buildDirectory.get().asFile.absolutePath}/.lto-cache", 
+                        )
+                        cppFlags.addAll(flags)
+                        cFlags.addAll(flags)
+                        val configFlags = arrayOf(
+                            "-Oz",
+                            "-DNDEBUG"
+                        ).joinToString(" ")
+                        arguments.addAll(
+                            arrayOf(
+                                "-DCMAKE_CXX_FLAGS_RELEASE=$configFlags",
+                                "-DCMAKE_CXX_FLAGS_RELWITHDEBINFO=$configFlags",
+                                "-DCMAKE_C_FLAGS_RELEASE=$configFlags",
+                                "-DCMAKE_C_FLAGS_RELWITHDEBINFO=$configFlags",
+                                "-DDEBUG_SYMBOLS_PATH=${layout.buildDirectory.get().asFile.absolutePath}/symbols", 
+                            )
+                        )
+                    }
                 }
-            }
-        }
-    }           
-}
+           }
+      }           
+ }
 
 subprojects {
     plugins.withId("com.android.application") { configureBaseExtension() }
