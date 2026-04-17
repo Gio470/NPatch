@@ -29,7 +29,7 @@ class LSPApplication : Application() {
     override fun onCreate() {
         super.onCreate()
         // verifySignature()
-        context?.let { CrashTrap.start(it) }
+        CrashTrap.start(context)
         
         try {
         } catch (e: UnsatisfiedLinkError) {
