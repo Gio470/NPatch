@@ -28,7 +28,7 @@ class LSPApplication : Application() {
     override fun onCreate() {
         super.onCreate()
         // verifySignature()        
-        org.lsposed.npatch.CrashTrap.start(context)
+        org.lsposed.npatch.CrashTrap.start(this)
         
         try {
         } catch (e: UnsatisfiedLinkError) {
