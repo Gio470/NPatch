@@ -1,4 +1,4 @@
-package ỏg.lsposed.npatch
+package org.lsposed.npatch
 
 import android.content.Context
 import android.os.Build
