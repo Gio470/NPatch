@@ -9,30 +9,26 @@ import java.io.StringWriter
 
 object CrashTrap {
     @JvmStatic
-    fun start(context: Context) {
+    fun start(ctx: Context?) {        
+        val context = ctx ?: return 
+        
         val originalHandler = Thread.getDefaultUncaughtExceptionHandler()
         Thread.setDefaultUncaughtExceptionHandler { thread, throwable ->
             try {
                 val sw = StringWriter()
                 throwable.printStackTrace(PrintWriter(sw))
                 
-                val report = """
-                    --- NPATCH ANDROID 7 CRASH REPORT ---
-                    Device: ${Build.MODEL}
-                    Android: ${Build.VERSION.RELEASE} (API ${Build.VERSION.SDK_INT})
-                    Reason: ${throwable.message}
-                    
-                    --- STACK TRACE ---
-                    ${sw}
-                """.trimIndent()
+                val report = "--- NPATCH CRASH ---\n" +
+                             "Device: ${Build.MODEL}\n" +
+                             "Android: ${Build.VERSION.RELEASE}\n" +
+                             "Reason: ${throwable.message}\n\n" +
+                             "--- STACK TRACE ---\n" + sw.toString()
 
                 val logFile = File(context.filesDir, "NPATCH_CRASH.txt")
-                logFile.writeText(report)
-                Log.e("NPatch", "FATAL CRASH CAPTURED AT: ${logFile.absolutePath}")
-            } catch (e: Exception) {
-                Log.e("NPatch", "CRASH HANDLER FAILED", e)
+                logFile.writeBytes(report.toByteArray())
+            } catch (e: Exception) {            
             }
             originalHandler?.uncaughtException(thread, throwable)
         }
     }
-            }
+}
