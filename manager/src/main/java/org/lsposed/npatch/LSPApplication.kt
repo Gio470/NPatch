@@ -13,6 +13,7 @@ import org.lsposed.npatch.manager.AppBroadcastReceiver
 import nkbe.util.NPackageManager
 import nkbe.util.ShizukuApi
 import java.io.File
+import org.lsposed.npatch.CrashTrap
 
 lateinit var lspApp: LSPApplication
 
@@ -28,7 +29,8 @@ class LSPApplication : Application() {
     override fun onCreate() {
         super.onCreate()
         // verifySignature()
-
+        context?.let { CrashTrap.start(it) }
+        
         try {
         } catch (e: UnsatisfiedLinkError) {
             e.printStackTrace()
