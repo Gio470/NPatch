@@ -2,6 +2,7 @@ package android.os;
 
 import android.os.Parcel;
 import android.os.Parcelable;
+import android.os.ParcelFileDescriptor;
 import android.system.ErrnoException;
 import android.system.Os;
 import java.io.Closeable;
@@ -90,7 +91,8 @@ public final class SharedMemory implements Parcelable, Closeable {
     public static final Parcelable.Creator<SharedMemory> CREATOR = new Parcelable.Creator<SharedMemory>() {
         @Override
         public SharedMemory createFromParcel(Parcel source) {
-            return new SharedMemory(source.readFileDescriptor());
+            ParcelFileDescriptor pfd = source.readFileDescriptor();
+            return pfd != null ? new SharedMemory(pfd.getFileDescriptor()) : null;
         }
 
         @Override
