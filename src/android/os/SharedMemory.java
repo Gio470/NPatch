@@ -1,5 +1,7 @@
 package android.os;
 
+import android.os.Parcel;
+import android.os.Parcelable;
 import android.system.ErrnoException;
 import android.system.Os;
 import java.io.Closeable;
@@ -10,85 +12,74 @@ import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel;
-import android.os.Parcel;
-import android.os.Parcelable;
-import android.os.ParcelFileDescriptor;
-import android.os.MemoryFile;
 
 public final class SharedMemory implements Parcelable, Closeable {
 
     private final FileDescriptor mFileDescriptor;
     private final int mSize;
-    private FileInputStream mAnchorStream; 
+    private final FileInputStream mAnchorStream;
 
     private SharedMemory(FileDescriptor fd) {
         this.mFileDescriptor = fd;
         int size = -1;
         try {
-            size = (int) Os.fstat(mFileDescriptor).st_size;
-        } catch (ErrnoException e) {
+            size = (int) Os.fstat(fd).st_size;
+        } catch (ErrnoException ignored) {
         }
         this.mSize = size;
-        this.mAnchorStream = new FileInputStream(mFileDescriptor);
+        this.mAnchorStream = new FileInputStream(fd);
     }
 
     public static SharedMemory create(String name, int size) throws Exception {
         if (size <= 0) throw new IllegalArgumentException("Size must be > 0");
-        
         MemoryFile memoryFile = new MemoryFile(name, size);
-        
         Method getFdMethod = MemoryFile.class.getDeclaredMethod("getFileDescriptor");
         getFdMethod.setAccessible(true);
         FileDescriptor fd = (FileDescriptor) getFdMethod.invoke(memoryFile);
-        
         return new SharedMemory(fd);
     }
 
     public ByteBuffer mapReadWrite() throws IOException {
-        return map(FileChannel.MapMode.READ_WRITE, 0, mSize);
+        return mAnchorStream.getChannel().map(FileChannel.MapMode.READ_WRITE, 0, mSize);
     }
 
-    public ByteBuffer map(FileChannel.MapMode mode, int offset, int length) throws IOException {
-        if (getNativeFd(mFileDescriptor) == -1) {
-            throw new IllegalStateException("SharedMemory is closed");
-        }
-        return mAnchorStream.getChannel().map(mode, offset, length);
-    }
-
-    private static int getNativeFd(FileDescriptor fd) {
-        try {
-            Field field = FileDescriptor.class.getDeclaredField("descriptor");
-            field.setAccessible(true);
-            return field.getInt(fd);
-        } catch (Exception e) {
-            return -1;
-        }
-    }
-
-    private static void setNativeFd(FileDescriptor fd, int nativeFd) {
-        try {
-            Field field = FileDescriptor.class.getDeclaredField("descriptor");
-            field.setAccessible(true);
-            field.setInt(fd, nativeFd);
-        } catch (Exception e) {}
+    public ByteBuffer mapReadOnly() throws IOException {
+        return mAnchorStream.getChannel().map(FileChannel.MapMode.READ_ONLY, 0, mSize);
     }
 
     @Override
     public void close() {
         try {
-            if (mAnchorStream != null) {
-                mAnchorStream.close();
+            if (mAnchorStream != null) mAnchorStream.close();
+            if (mFileDescriptor != null && mFileDescriptor.valid()) {
+                Os.close(mFileDescriptor);
             }
-            Os.close(mFileDescriptor);
-        } catch (Exception e) {
+        } catch (Exception ignored) {
         } finally {
             setNativeFd(mFileDescriptor, -1);
         }
     }
 
+    private static void setNativeFd(FileDescriptor fd, int value) {
+        try {
+            Field field = FileDescriptor.class.getDeclaredField("descriptor");
+            field.setAccessible(true);
+            field.setInt(fd, value);
+        } catch (Exception ignored) {
+        }
+    }
+
+    public FileDescriptor getFileDescriptor() {
+        return mFileDescriptor;
+    }
+
+    public int getSize() {
+        return mSize;
+    }
+
     @Override
     public int describeContents() {
-        return 0x0001;
+        return 1;
     }
 
     @Override
@@ -99,9 +90,7 @@ public final class SharedMemory implements Parcelable, Closeable {
     public static final Parcelable.Creator<SharedMemory> CREATOR = new Parcelable.Creator<SharedMemory>() {
         @Override
         public SharedMemory createFromParcel(Parcel source) {
-            ParcelFileDescriptor pfd = source.readFileDescriptor();
-            if (pfd == null) return null;
-            return new SharedMemory(pfd.getFileDescriptor());
+            return new SharedMemory(source.readFileDescriptor());
         }
 
         @Override
@@ -109,7 +98,4 @@ public final class SharedMemory implements Parcelable, Closeable {
             return new SharedMemory[size];
         }
     };
-
-    public int getSize() { return mSize; }
-    public FileDescriptor getFileDescriptor() { return mFileDescriptor; }
-  }
+    }
