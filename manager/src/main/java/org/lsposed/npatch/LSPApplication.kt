@@ -36,7 +36,7 @@ class LSPApplication : Application() {
         } catch (e: Exception) {
             e.printStackTrace()
         }
-        HiddenApiBypass.addHiddenApiExemptions("")
+        //HiddenApiBypass.addHiddenApiExemptions("")
         lspApp = this
         filesDir.mkdir()
         tmpApkDir = cacheDir.resolve("apk").also { it.mkdir() }
