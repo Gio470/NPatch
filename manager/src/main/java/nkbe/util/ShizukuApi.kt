@@ -1,7 +1,9 @@
 package nkbe.util
 
+import android.content.Intent
 import android.content.IntentSender
 import android.content.pm.*
+import android.net.Uri
 import android.os.Build
 import android.os.IBinder
 import android.os.IInterface
@@ -14,6 +16,7 @@ import dev.rikka.tools.refine.Refine
 import rikka.shizuku.Shizuku
 import rikka.shizuku.ShizukuBinderWrapper
 import rikka.shizuku.SystemServiceHelper
+import java.io.File
 
 object ShizukuApi {
 
@@ -28,12 +31,18 @@ object ShizukuApi {
         IPackageInstaller.Stub.asInterface(iPackageManager.packageInstaller.asShizukuBinder())
     }
 
-    private val packageInstaller: PackageInstaller by lazy {
+    private val packageInstaller: PackageInstaller? by lazy {
         val userId = Process.myUserHandle().hashCode()
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-            Refine.unsafeCast(PackageInstallerHidden(iPackageInstaller, "com.android.shell", null, userId))
-        } else {
-            Refine.unsafeCast(PackageInstallerHidden(iPackageInstaller, "com.android.shell", userId))
+        try {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                Refine.unsafeCast(PackageInstallerHidden(iPackageInstaller, "com.android.shell", null, userId))
+            } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                Refine.unsafeCast(PackageInstallerHidden(iPackageInstaller, "com.android.shell", userId))
+            } else {
+                null
+            }
+        } catch (e: Throwable) {
+            null
         }
     }
 
@@ -53,16 +62,13 @@ object ShizukuApi {
     
     fun getInstalledApplications(): List<ApplicationInfo> {
         val userId = Process.myUserHandle().hashCode()
-        val flags: Long = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            PackageManager.GET_META_DATA.toLong()
-        }else {
-            PackageManager.GET_META_DATA.toLong()
-        }
+        val flags: Long = PackageManager.GET_META_DATA.toLong()
         return iPackageManager.getInstalledApplications(flags, userId).list
     }
 
-    fun createPackageInstallerSession(params: PackageInstaller.SessionParams): PackageInstaller.Session {
-        val sessionId = packageInstaller.createSession(params)
+    fun createPackageInstallerSession(params: PackageInstaller.SessionParams): PackageInstaller.Session? {
+        val installer = packageInstaller ?: return null
+        val sessionId = installer.createSession(params)
         val iSession = IPackageInstallerSession.Stub.asInterface(iPackageInstaller.openSession(sessionId).asShizukuBinder())
         return Refine.unsafeCast(PackageInstallerHidden.SessionHidden(iSession))
     }
@@ -78,7 +84,7 @@ object ShizukuApi {
     }
 
     fun uninstallPackage(packageName: String, intentSender: IntentSender) {
-        packageInstaller.uninstall(packageName, intentSender)
+        packageInstaller?.uninstall(packageName, intentSender)
     }
 
     fun performDexOptMode(packageName: String): Boolean {
@@ -87,5 +93,14 @@ object ShizukuApi {
             SystemProperties.getBoolean("dalvik.vm.usejitprofiles", false),
             "verify", true, true, null
         )
+    }
+
+    fun installApkNormal(context: android.content.Context, apkFile: File) {
+        val uri = androidx.core.content.FileProvider.getUriForFile(context, context.packageName + ".fileprovider", apkFile)
+        val intent = Intent(Intent.ACTION_VIEW)
+        intent.setDataAndType(uri, "application/vnd.android.package-archive")
+        intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        context.startActivity(intent)
     }
 }
