@@ -3,6 +3,7 @@ package android.os;
 import java.io.Closeable;
 import java.io.FileDescriptor;
 import java.io.FileInputStream;
+import java.io.File;
 import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.lang.reflect.Field;
@@ -57,12 +58,15 @@ public final class SharedMemory implements Parcelable, Closeable {
         dest.writeFileDescriptor(mFileDescriptor);
     }
 
-    public static final Parcelable.Creator<SharedMemory> CREATOR = new Parcelable.Creator<SharedMemory>() {
+        public static final Parcelable.Creator<SharedMemory> CREATOR = new Parcelable.Creator<SharedMemory>() {
         @Override
         public SharedMemory createFromParcel(Parcel source) {
-            return new SharedMemory(source.readFileDescriptor(), 0);
+            ParcelFileDescriptor pfd = source.readFileDescriptor();
+            return pfd != null ? new SharedMemory(pfd.getFileDescriptor()) : null;
         }
+
         @Override
-        public SharedMemory[] newArray(int size) { return new SharedMemory[size]; }
+        public SharedMemory[] newArray(int size) {
+            return new SharedMemory[size];
+        }
     };
-                                                            }
