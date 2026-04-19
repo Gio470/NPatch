@@ -69,7 +69,7 @@ public class LSPApplication {
     private static PatchConfig config;
 
     public static boolean isIsolated() {
-        return (Process.myUid() % PER_USER_RANGE) >= FIRST_APP_ZYGOTE_ISOLATED_UID;
+        return false;
     }
 
     private static boolean hasEmbeddedModules(Context context) {
