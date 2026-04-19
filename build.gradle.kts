@@ -41,13 +41,13 @@ val (coreCommitCount, coreLatestTag) = FileRepositoryBuilder().setGitDir(rootPro
 val defaultManagerPackageName by extra("org.lsposed.npatch")
 val apiCode by extra(100)
 val verCode by extra(commitCount)
-val verName by extra("0.7.4-Frankenstein")
+val verName by extra("0.8.0")
 val coreVerCode by extra(coreCommitCount)
 val coreVerName by extra(coreLatestTag)
 val androidMinSdkVersion by extra(24)
 val androidTargetSdkVersion by extra(36)
 val androidCompileSdkVersion by extra(36)
-val androidCompileNdkVersion by extra("29.0.13599879") // 🛠️ NDK PHỤC HỒI
+val androidCompileNdkVersion by extra("29.0.13599879")
 val androidBuildToolsVersion by extra("36.1.0")
 val androidSourceCompatibility by extra(JavaVersion.VERSION_17)
 val androidTargetCompatibility by extra(JavaVersion.VERSION_17)
@@ -71,7 +71,7 @@ fun Project.configureBaseExtension() {
     extensions.findByType(BaseExtension::class)?.run {
         compileSdkVersion(androidCompileSdkVersion)
         buildToolsVersion = androidBuildToolsVersion
-        ndkVersion = androidCompileNdkVersion // 🛠️ KÍCH HOẠT NDK TẠI ĐÂY!
+        ndkVersion = androidCompileNdkVersion
 
         externalNativeBuild.cmake {
             version = "3.29.8+"
