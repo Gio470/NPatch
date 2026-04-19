@@ -34,12 +34,8 @@ public class LSPAppComponentFactoryStub extends AppComponentFactory {
 
     public static byte[] dex;
 
-    static {
-        final boolean appZygote = ActivityThread.currentActivityThread() == null;
-        if (appZygote) {
-            Log.i(TAG, "Skip loading libnpatch.so for appZygote");
-        } else {
-            bootstrap();
+    static {    
+            bootstrap();  // Android 7 always returns null when running this class
         }
     }
 
