@@ -70,3 +70,4 @@ public final class SharedMemory implements Parcelable, Closeable {
             return new SharedMemory[size];
         }
     };
+} 
