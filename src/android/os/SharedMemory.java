@@ -1,12 +1,19 @@
 package android.os;
 
+import android.os.Parcel;
+import android.os.Parcelable;
+import android.os.ParcelFileDescriptor;
+import android.os.MemoryFile;
+import android.system.ErrnoException;
+import android.system.Os;
 import java.io.Closeable;
+import java.io.File;
 import java.io.FileDescriptor;
 import java.io.FileInputStream;
-import java.io.File;
 import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.lang.reflect.Field;
+import java.lang.reflect.Method;
 import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel;
 
@@ -18,18 +25,22 @@ public final class SharedMemory implements Parcelable, Closeable {
 
     private SharedMemory(FileDescriptor fd, int size) {
         this.mFileDescriptor = fd;
-        this.mSize = size;
+        int s = size;
+        if (s == -1) {
+            try {
+                s = (int) Os.fstat(fd).st_size;
+            } catch (ErrnoException ignored) {}
+        }
+        this.mSize = s;
         this.mAnchorStream = new FileInputStream(fd);
     }
 
     public static SharedMemory create(String name, int size) throws Exception {
         if (size <= 0) throw new IllegalArgumentException("Size must be > 0");
-        File tempFile = File.createTempFile("npatch_mem", ".tmp");
-        RandomAccessFile raf = new RandomAccessFile(tempFile, "rw");
-        raf.setLength(size);
-        Field field = FileDescriptor.class.getDeclaredField("descriptor");
-        field.setAccessible(true);
-        FileDescriptor fd = raf.getFD();
+        MemoryFile memoryFile = new MemoryFile(name, size);
+        Method getFdMethod = MemoryFile.class.getDeclaredMethod("getFileDescriptor");
+        getFdMethod.setAccessible(true);
+        FileDescriptor fd = (FileDescriptor) getFdMethod.invoke(memoryFile);
         return new SharedMemory(fd, size);
     }
 
@@ -41,33 +52,47 @@ public final class SharedMemory implements Parcelable, Closeable {
         return mAnchorStream.getChannel().map(FileChannel.MapMode.READ_ONLY, 0, mSize);
     }
 
+    @Override
     public void close() {
         try {
-            mAnchorStream.close();
-        } catch (IOException ignored) {}
+            if (mAnchorStream != null) mAnchorStream.close();
+            if (mFileDescriptor != null && mFileDescriptor.valid()) {
+                Os.close(mFileDescriptor);
+            }
+        } catch (Exception ignored) {
+        } finally {
+            setNativeFd(mFileDescriptor, -1);
+        }
+    }
+
+    private static void setNativeFd(FileDescriptor fd, int value) {
+        try {
+            Field field = FileDescriptor.class.getDeclaredField("descriptor");
+            field.setAccessible(true);
+            field.setInt(fd, value);
+        } catch (Exception ignored) {
+        }
     }
 
     public FileDescriptor getFileDescriptor() { return mFileDescriptor; }
     public int getSize() { return mSize; }
 
     @Override
-    public int describeContents() { return 0; }
+    public int describeContents() { return 1; }
 
     @Override
     public void writeToParcel(Parcel dest, int flags) {
         dest.writeFileDescriptor(mFileDescriptor);
     }
 
-        public static final Parcelable.Creator<SharedMemory> CREATOR = new Parcelable.Creator<SharedMemory>() {
+    public static final Parcelable.Creator<SharedMemory> CREATOR = new Parcelable.Creator<SharedMemory>() {
         @Override
         public SharedMemory createFromParcel(Parcel source) {
             ParcelFileDescriptor pfd = source.readFileDescriptor();
-            return pfd != null ? new SharedMemory(pfd.getFileDescriptor()) : null;
+            return pfd != null ? new SharedMemory(pfd.getFileDescriptor(), -1) : null;
         }
 
         @Override
-        public SharedMemory[] newArray(int size) {
-            return new SharedMemory[size];
-        }
+        public SharedMemory[] newArray(int size) { return new SharedMemory[size]; }
     };
-} 
+}
