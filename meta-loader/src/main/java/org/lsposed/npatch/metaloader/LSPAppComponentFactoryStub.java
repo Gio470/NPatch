@@ -37,7 +37,6 @@ public class LSPAppComponentFactoryStub extends AppComponentFactory {
     static {    
             bootstrap();  // Android 7 always returns null when running this class
         }
-    }
 
     private static void bootstrap() {
         try {
