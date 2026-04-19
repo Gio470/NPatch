@@ -87,6 +87,9 @@ public class LSPApplication {
             return;
         }
         activityThread = ActivityThread.currentActivityThread();
+        if (activityThread == null) {        
+        activityThread = ActivityThread.systemMain(); 
+        }
         var context = createLoadedApkWithContext();
         if (context == null) {
             XLog.e(TAG, "Error when creating context");
