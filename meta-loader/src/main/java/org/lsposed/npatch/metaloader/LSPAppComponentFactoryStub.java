@@ -42,14 +42,12 @@ public class LSPAppComponentFactoryStub extends AppComponentFactory {
         try {
             archToLib.put("arm64", "arm64-v8a");
             archToLib.put("x86_64", "x86_64");
-
+            
             var cl = Objects.requireNonNull(LSPAppComponentFactoryStub.class.getClassLoader());
             Class<?> VMRuntime = Class.forName("dalvik.system.VMRuntime");
-            Method getRuntime = VMRuntime.getDeclaredMethod("getRuntime");
-            getRuntime.setAccessible(true);
-            Method vmInstructionSet = VMRuntime.getDeclaredMethod("vmInstructionSet");
-            vmInstructionSet.setAccessible(true);
-            String arch = (String) vmInstructionSet.invoke(getRuntime.invoke(null));
+            Method getInstructionSet = VMRuntime.getDeclaredMethod("getInstructionSet", String.class);
+            getInstructionSet.setAccessible(true);
+            String arch = (String) getInstructionSet.invoke(null, android.os.Build.SUPPORTED_ABIS[0]);
             String libName = archToLib.get(arch);
 
             boolean useManager = false;
