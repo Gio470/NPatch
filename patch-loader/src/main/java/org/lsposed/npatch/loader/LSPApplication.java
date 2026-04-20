@@ -69,66 +69,69 @@ public class LSPApplication {
     private static PatchConfig config;
 
     public static boolean isIsolated() {
-    return false;
-}
-
-private static boolean hasEmbeddedModules(Context context) {
-    try {
-        String[] list = context.getAssets().list("npatch/modules");
-        return list != null && list.length > 0;
-    } catch (IOException e) {
-        return false;
-    }
-}
-
-public static void onLoad() throws RemoteException, IOException {
-    if (isIsolated()) {
-        XLog.d(TAG, "Skip isolated process");
-        return;
+        return (Process.myUid() % PER_USER_RANGE) >= FIRST_APP_ZYGOTE_ISOLATED_UID;
     }
 
-    Context context = AndroidAppHelper.currentApplication();
-    IXposedService service = null;
+    private static boolean hasEmbeddedModules(Context context) {
+        try {
+            String[] list = context.getAssets().list("npatch/modules");
+            return list != null && list.length > 0;
+        } catch (IOException e) {
+            return false;
+        }
+    }
 
-    try {
-        service = IXposedService.Stub.asInterface(
-            ServiceManager.getService(Context.XPOSED_SERVICE)
-        );
-        
-        if (service != null) {
-            Log.i(TAG, "Using Manager Service");
-            ParceledListSlice<PackageInfo> slice = service.getModulesList();
-            List<PackageInfo> modules = slice.getList();
-            
-            JSONArray moduleArr = new JSONArray();
-            for (PackageInfo info : modules) {
-                moduleArr.put(info.packageName);
+    public static void onLoad() throws RemoteException, IOException {
+        if (isIsolated()) {
+            XLog.d(TAG, "Skip isolated process");
+            return;
+        }
+        activityThread = ActivityThread.currentActivityThread();
+        var context = createLoadedApkWithContext();
+        if (context == null) {
+            XLog.e(TAG, "Error when creating context");
+            return;
+        }
+
+        Log.d(TAG, "Initialize service client");
+        ILSPApplicationService service = null;
+
+        if (config.useManager) {
+            try {
+                service = new RemoteApplicationService(context);
+                List<Module> m = service.getLegacyModulesList();
+                JSONArray moduleArr = new JSONArray();
+                if (m != null) {
+                    for (Module module : m) {
+                        JSONObject moduleObj = new JSONObject();
+                        moduleObj.put("path", module.apkPath);
+                        moduleObj.put("packageName", module.packageName);
+                        moduleArr.put(moduleObj);
+                    }
+                }
+                SharedPreferences shared = context.getSharedPreferences("npatch", Context.MODE_PRIVATE);
+                shared.edit().putString("modules", moduleArr.toString()).apply();
+                Log.i(TAG, "Success update module scope from Manager");
+            } catch (Throwable e) {
+                Log.w(TAG, "Failed to connect to manager: " + e.getMessage());
+                service = null;
             }
-            
-            SharedPreferences shared = context.getSharedPreferences("npatch", Context.MODE_PRIVATE);
-            shared.edit().putString("modules", moduleArr.toString()).apply();
-            Log.i(TAG, "Success update module scope from Manager");
         }
-    } catch (Throwable e) {
-        Log.w(TAG, "Failed to connect to manager: " + e.getMessage());
-        service = null;
-    }
 
-    if (service == null) {
-        if (hasEmbeddedModules(context)) {
-            Log.i(TAG, "Using Integrated Service (Embedded Modules Found)");
-            service = new IntegrApplicationService(context);
-        } else {
-            Log.i(TAG, "Using NeoLocal Service (Cached Config)");
-            service = new NeoLocalApplicationService(context);
+        if (service == null) {
+            if (hasEmbeddedModules(context)) {
+                Log.i(TAG, "Using Integrated Service (Embedded Modules Found)");
+                service = new IntegrApplicationService(context);
+            } else {
+                Log.i(TAG, "Using NeoLocal Service (Cached Config)");
+                service = new NeoLocalApplicationService(context);
+            }
         }
-    }
 
-    disableProfile(context);
-    Startup.initXposed(false, ActivityThread.currentProcessName(), context.getApplicationInfo().dataDir, service);
-    Startup.bootstrapXposed();
-    }
-    
+        disableProfile(context);
+        Startup.initXposed(false, ActivityThread.currentProcessName(), context.getApplicationInfo().dataDir, service);
+        Startup.bootstrapXposed();
+
         // WARN: Since it uses `XResource`, the following class should not be initialized
         // before forkPostCommon is invoke. Otherwise, you will get failure of XResources
 
