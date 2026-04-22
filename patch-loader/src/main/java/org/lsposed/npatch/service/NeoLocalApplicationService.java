@@ -49,13 +49,20 @@ public class NeoLocalApplicationService extends ILSPApplicationService.Stub {
             Log.i(TAG, "NeoLocal: Loading from cache: " + jsonStr);
 
             for (int i = 0; i < jsonArray.length(); i++) {
-                JSONObject obj = jsonArray.getJSONObject(i);
-                String packageName = obj.optString("packageName");
-                String path = obj.optString("path");
+                Object item = jsonArray.get(i);
+                String packageName = "";
+                String path = "";
+
+                if (item instanceof JSONObject) {
+                    packageName = ((JSONObject) item).optString("packageName");
+                    path = ((JSONObject) item).optString("path");
+                } else {
+                    packageName = item.toString();
+                }
 
                 if (path != null && !path.isEmpty() && new File(path).exists()) {
                     loadModuleByPath(packageName, path);
-                } else if (packageName != null) {
+                } else if (packageName != null && !packageName.isEmpty()) {
                     loadSingleModule(pm, packageName);
                 }
             }
@@ -87,14 +94,18 @@ public class NeoLocalApplicationService extends ILSPApplicationService.Stub {
 
         try (Cursor cursor = context.getContentResolver().query(queryUri, null, null, null, null)) {
             if (cursor == null) {
-                Log.w(TAG, "NeoLocal: Cannot reach Manager Provider.");
+                Log.w(TAG, "NeoLocal: Provider query returned null.");
                 return;
             }
-
+            int colIndex = cursor.getColumnIndex("packageName");
+            if (colIndex == -1) {
+                Log.e(TAG, "NeoLocal: Column 'packageName' not found in provider.");
+                return;
+            }
             while (cursor.moveToNext()) {
-                int colIndex = cursor.getColumnIndex("packageName");
-                if (colIndex != -1) {
-                    loadSingleModule(pm, cursor.getString(colIndex));
+                String pkg = cursor.getString(colIndex);
+                if (pkg != null && !pkg.isEmpty()) {
+                    loadSingleModule(pm, pkg);
                 }
             }
         } catch (Exception e) {
@@ -131,8 +142,10 @@ public class NeoLocalApplicationService extends ILSPApplicationService.Stub {
 
     @Override
     public String getPrefsPath(String packageName) throws RemoteException { return "/data/data/" + packageName + "/shared_prefs/"; }
+    
     @Override
     public ParcelFileDescriptor requestInjectedManagerBinder(List<IBinder> binder) throws RemoteException { return null; }
+    
     @Override
     public IBinder asBinder() {
         return this;
@@ -142,4 +155,4 @@ public class NeoLocalApplicationService extends ILSPApplicationService.Stub {
     public boolean isLogMuted() throws RemoteException {
         return false;
     }
-}
+                                 }
