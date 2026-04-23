@@ -28,11 +28,9 @@ public class LSPLoader {
 
     private static void setPackageNameForResDir(String packageName, String resDir) {
         try {
-            // Use reflection to avoid direct type reference to android.content.res.XResources
-            // which fails class resolution on Android 16+ due to strict boot classloader
-            // namespace delegation for the android.content.res.* package.
-            ClassLoader cl = LSPLoader.class.getClassLoader();
-            Class<?> xResourcesClass = cl.loadClass("android.content.res.XResources");
+            Class<?> xResourcesClass = Class.forName(
+            "android.content.res.XResources",false,
+            Thread.currentThread().getContextClassLoader() );
             Method setMethod = xResourcesClass.getMethod("setPackageNameForResDir", String.class, String.class);
             setMethod.invoke(null, packageName, resDir);
         } catch (Throwable e) {
