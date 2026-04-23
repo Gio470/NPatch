@@ -1,5 +1,6 @@
 package org.lsposed.npatch.util;
 
+import android.os.Build;
 import android.os.SharedMemory;
 import android.system.ErrnoException;
 import android.system.OsConstants;
@@ -8,11 +9,14 @@ import android.util.Log;
 import org.lsposed.lspd.models.PreLoadedApk;
 
 import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.nio.channels.Channels;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
 
 public class ModuleLoader {
@@ -20,6 +24,10 @@ public class ModuleLoader {
     private static final String TAG = "NPatch";
 
     private static void readDexes(ZipFile apkFile, List<SharedMemory> preLoadedDexes) {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) {
+            return;
+        }
+        
         int secondary = 2;
         for (var dexFile = apkFile.getEntry("classes.dex"); dexFile != null;
              dexFile = apkFile.getEntry("classes" + secondary + ".dex"), secondary++) {
@@ -66,7 +74,6 @@ public class ModuleLoader {
             Log.e(TAG, "Can not open " + path, e);
             return null;
         }
-        if (preLoadedDexes.isEmpty()) return null;
         if (moduleClassNames.isEmpty()) return null;
         file.preLoadedDexes = preLoadedDexes;
         file.moduleClassNames = moduleClassNames;
