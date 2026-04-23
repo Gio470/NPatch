@@ -2,6 +2,7 @@ package org.lsposed.npatch.metaloader;
 
 import android.annotation.SuppressLint;
 import android.app.ActivityThread;
+import android.app.AppComponentFactory;
 import android.content.pm.ApplicationInfo;
 import android.content.pm.IPackageManager;
 import android.os.Build;
@@ -26,27 +27,34 @@ import java.util.Objects;
 import java.util.zip.ZipFile;
 
 @SuppressLint("UnsafeDynamicallyLoadedCode")
-public class LSPAppComponentFactoryStub {
+public class LSPAppComponentFactoryStub extends AppComponentFactory {
 
     private static final String TAG = "NPatch-MetaLoader";
     private static final Map<String, String> archToLib = new HashMap<String, String>(4);
 
     public static byte[] dex;
 
-    static {    
-            bootstrap();  // Android 7 always returns null when running this class
+    static {
+        final boolean appZygote = ActivityThread.currentActivityThread() == null;
+        if (appZygote) {
+            Log.i(TAG, "Skip loading libnpatch.so for appZygote");
+        } else {
+            bootstrap();
         }
+    }
 
     private static void bootstrap() {
         try {
             archToLib.put("arm64", "arm64-v8a");
             archToLib.put("x86_64", "x86_64");
-            
+
             var cl = Objects.requireNonNull(LSPAppComponentFactoryStub.class.getClassLoader());
             Class<?> VMRuntime = Class.forName("dalvik.system.VMRuntime");
-            Method getInstructionSet = VMRuntime.getDeclaredMethod("getInstructionSet", String.class);
-            getInstructionSet.setAccessible(true);
-            String arch = (String) getInstructionSet.invoke(null, android.os.Build.SUPPORTED_ABIS[0]);
+            Method getRuntime = VMRuntime.getDeclaredMethod("getRuntime");
+            getRuntime.setAccessible(true);
+            Method vmInstructionSet = VMRuntime.getDeclaredMethod("vmInstructionSet");
+            vmInstructionSet.setAccessible(true);
+            String arch = (String) vmInstructionSet.invoke(getRuntime.invoke(null));
             String libName = archToLib.get(arch);
 
             boolean useManager = false;
