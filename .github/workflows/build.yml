@@ -36,7 +36,7 @@ jobs:
       run: |
         mkdir -p out/shared_memory_dex
                 
-        javac -source 17 -target 17 \
+        javac -source 1.8 -target 1.8 \
           -bootclasspath $ANDROID_HOME/platforms/android-34/android.jar \
           src/android/os/SharedMemory.java
                 
