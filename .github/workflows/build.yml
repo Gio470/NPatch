@@ -24,27 +24,22 @@ jobs:
         submodules: 'recursive'
         fetch-depth: 0
 
-    - name: 😈 Bạo lực Tróc Nã Submodule
-      run: |
-          # Đồng bộ lại toàn bộ đường dẫn submodule
-          git submodule sync --recursive
-          # Ép tải về bằng mọi giá, kể cả các folder lồng nhau
+    - name: Fix Submodule
+      run: |          
+          git submodule sync --recursive          
           git submodule update --init --force --recursive
           
-          echo "==== SOI RUỘT CORE SAU KHI ÉP TẢI ===="
-          # Hiển thị xem bên trong có gì để làm bằng chứng
+          echo "Seen"          
           find core/ -name "CMakeLists.txt"
 
-    - name: 🧙‍♂️ Pháp sư chế tạo SharedMemory Dex
+    - name: Port SharedMemory Dex
       run: |
         mkdir -p out/shared_memory_dex
-        
-        # 1. Biên dịch Java (Vẫn dùng android.jar)
-        javac -source 1.8 -target 1.8 \
+                
+        javac -source 17 -target 17 \
           -bootclasspath $ANDROID_HOME/platforms/android-34/android.jar \
           src/android/os/SharedMemory.java
-        
-        # 2. Chuyển sang Dex (THÊM --lib ĐỂ D8 HẾT BỊ MÙ)
+                
         $ANDROID_HOME/build-tools/34.0.0/d8 src/android/os/*.class \
           --lib $ANDROID_HOME/platforms/android-34/android.jar \
           --output out/shared_memory_dex/
@@ -58,59 +53,47 @@ jobs:
 
     - name: 🛡️ Fix Submodule sun.misc
       run: |
-          echo "🔍 Searching in submodules..."
-          # Dùng find để quét toàn bộ, bất kể nó nằm sâu trong core hay submodule nào
+          echo "🔍 Searching in submodules..."          
           TARGET_FILE=$(find . -name "CompoundEnumeration.java" -path "*/sun/misc/*" | head -n 1)
           
           if [ -n "$TARGET_FILE" ]; then
             echo "✅ Target found: $TARGET_FILE"
-            
-            # 1. Xác định thư mục gốc của submodule chứa file đó
-            # Giả định cấu trúc là .../src/main/java/sun/misc/...
+                        
             BASE_JAVA_DIR=$(echo "$TARGET_FILE" | sed 's|sun/misc/CompoundEnumeration.java||')
             NEW_DIR="${BASE_JAVA_DIR}internal/stubs"
-            
-            # 2. Tạo thư mục mới và di chuyển file
+                        
             mkdir -p "$NEW_DIR"
             mv "$TARGET_FILE" "$NEW_DIR/"
-            
-            # 3. Đổi package (Dùng dấu | thay cho / để sed không bị loạn)
+                        
             sed -i 's|package sun.misc;|package internal.stubs;|g' "$NEW_DIR/CompoundEnumeration.java"
-            
-            # 4. Sửa toàn bộ Import trong project
+                        
             echo "🔗 Syncing imports..."
             find . -type f -name "*.java" -exec sed -i 's|import sun.misc.CompoundEnumeration;|import internal.stubs.CompoundEnumeration;|g' {} +
             find . -type f -name "*.java" -exec sed -i 's|sun.misc.CompoundEnumeration|internal.stubs.CompoundEnumeration|g' {} +
-            
-            # 5. Xóa thư mục sun rỗng để tránh module jdk.unsupported nhận vơ
+                        
             rm -rf "${BASE_JAVA_DIR}sun"
             echo "🚀 Submodule fixed successfully!"
           else
             echo "⚠️ File not found. Check if submodules are checked out correctly."
           fi
 
-    - name: ⚡ Hot-fix sun.net.www in Submodule
-      run: |
-          # 1. Định vị file gây lỗi
+    - name: Hot-fix sun.net.www in Submodule
+      run: |          
           TARGET_FILE="core/core/src/main/java/org/lsposed/lspd/util/ClassPathURLStreamHandler.java"
           
           if [ -f "$TARGET_FILE" ]; then
-            echo "🎯 Đã tìm thấy mục tiêu, đang tiến hành 'phẫu thuật'..."
-            
-            # Đổi toàn bộ sun.net.www thành sunp.net.www (hoặc tên bất kỳ)
+            echo "Problem seen"
+                        
             sed -i 's/sun\.net\.www/sunp\.net\.www/g' "$TARGET_FILE"
-            
-            # 2. Tạo nhanh các file Stub ngay tại chỗ để trình biên dịch không kêu ca
+                  
             STUB_DIR="core/core/src/main/java/sunp/net/www/protocol/jar"
             mkdir -p "$STUB_DIR"
-            
-            # Tạo Stub cho ParseUtil
+                        
             echo -e "package sunp.net.www;\npublic class ParseUtil { public static String encodePath(String p, boolean b) { return p; } }" > "core/core/src/main/java/sunp/net/www/ParseUtil.java"
-            
-            # Tạo Stub cho Handler (Đã fix thêm throws java.io.IOException)
+                  
             echo -e "package sunp.net.www.protocol.jar;\nimport java.net.URLStreamHandler;\npublic class Handler extends URLStreamHandler { protected java.net.URLConnection openConnection(java.net.URL u) throws java.io.IOException { return null; } }" > "$STUB_DIR/Handler.java"
 
-            echo "🚀 Đã 'vá' xong submodule mà không cần Fork!"
+            echo "Successfully patched"
           fi
 
     - name: 設定快取
