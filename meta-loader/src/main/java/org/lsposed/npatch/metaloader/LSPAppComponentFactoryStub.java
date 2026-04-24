@@ -47,16 +47,16 @@ public class LSPAppComponentFactoryStub extends Application {
 }
 
     @Override
-protected void attachBaseContext(Context base) {
-    super.attachBaseContext(base);
-    if (!bootstrapped) {
-        bootstrap();
-    }
-}
+    protected void attachBaseContext(Context base) {
+        super.attachBaseContext(base);
+        if (!bootstrapped) {
+            bootstrap();
+      }
+  }
 
     private static synchronized void bootstrap() {
-    if (bootstrapped) return;
-    bootstrapped = true;
+        if (bootstrapped) return;
+        bootstrapped = true;
         try {
             archToLib.put("arm64", "arm64-v8a");
             archToLib.put("x86_64", "x86_64");
