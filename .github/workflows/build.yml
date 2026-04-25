@@ -34,7 +34,7 @@ jobs:
 
     - name: System Port
       run: |
-       mkdir -p out/Port1
+       mkdir -p out/Port1/{sm,acf}
 
        javac -source 1.8 -target 1.8 \
        -bootclasspath $ANDROID_HOME/platforms/android-34/android.jar \
@@ -47,19 +47,20 @@ jobs:
        src/android/app/AppComponentFactory.java
 
        $ANDROID_HOME/build-tools/34.0.0/d8 \
-       --output out/Port1/dex1 \
+       --output out/Port1/dex1.zip \
        out/Port1/sm/android/os/SharedMemory.class
 
        $ANDROID_HOME/build-tools/34.0.0/d8 \
-       --output out/Port1/dex2 \
+       --output out/Port1/dex2.zip\
         out/Port1/acf/android/app/AppComponentFactory.class
 
        $ANDROID_HOME/build-tools/34.0.0/d8 \
-       --output out/Port1/final.zip\
-       out/Port1/dex1/classes.dex \
-       out/Port1/dex2/classes.dex
+       --output out/Port1/classes.dex.zip\
+       out/Port1/dex1.zip \
+       out/Port1/dex2.zip
 
-       ls -lah out/Port1/final/classes.dex
+       unzip -o out/Port1/classes.dex.zip -d out/Port1/
+       ls -lah out/Port1/final/classes.dex 
 
     - name: System Port File
       uses: actions/upload-artifact@v5
