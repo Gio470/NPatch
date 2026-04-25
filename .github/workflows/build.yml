@@ -34,26 +34,23 @@ jobs:
 
     - name: System Port
       run: |
-        mkdir -p out/port
-                
-        javac -source 1.8 -target 1.8 \
-          -bootclasspath $ANDROID_HOME/platforms/android-34/android.jar \
-          src/android/os/SharedMemory.java
+        mkdir -p out/Port1
 
         javac -source 1.8 -target 1.8 \
-          -bootclasspath $ANDROID_HOME/platforms/android-34/android.jar \
+         -bootclasspath $ANDROID_HOME/platforms/android-34/android.jar \
+         -d out/Port1 \
+          src/android/os/SharedMemory.java \
           src/android/app/AppComponentFactory.java
-                
-        $ANDROID_HOME/build-tools/34.0.0/d8 \
-         --lib $ANDROID_HOME/platforms/android-34/android.jar \
-         --output out/port \
-         $(find out/port -name "*.class" -type f)
+
+         cd out/Port1
+         $ANDROID_HOME/build-tools/34.0.0/d8 android/
+         cd -
 
     - name: System Port File
       uses: actions/upload-artifact@v5
       with:
         name: Port-System-${{ env.commit }} 
-        path: out/port
+        path: out/Port1
         retention-days: 7
 
     - name: 🛡️ Fix Submodule sun.misc
