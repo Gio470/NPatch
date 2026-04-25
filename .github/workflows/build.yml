@@ -35,17 +35,31 @@ jobs:
     - name: System Port
       run: |
        mkdir -p out/Port1
-       chmod -R 755 out/       
-        
-        javac -source 1.8 -target 1.8 \
-         -bootclasspath $ANDROID_HOME/platforms/android-34/android.jar \
-         -d out/Port1 \
-          src/android/os/SharedMemory.java \
-          src/android/app/AppComponentFactory.java
 
-         cd out/Port1
-         $ANDROID_HOME/build-tools/34.0.0/d8 android/
-         cd -
+       javac -source 1.8 -target 1.8 \
+       -bootclasspath $ANDROID_HOME/platforms/android-34/android.jar \
+       -d out/Port1/sm \
+       src/android/os/SharedMemory.java
+
+       javac -source 1.8 -target 1.8 \
+       -bootclasspath $ANDROID_HOME/platforms/android-34/android.jar \
+       -d out/Port1/acf \
+       src/android/app/AppComponentFactory.java
+
+       $ANDROID_HOME/build-tools/34.0.0/d8 \
+       --output out/Port1/dex1 \
+       out/Port1/sm/android/os/SharedMemory.class
+
+       $ANDROID_HOME/build-tools/34.0.0/d8 \
+       --output out/Port1/dex2 \
+        out/Port1/acf/android/app/AppComponentFactory.class
+
+       $ANDROID_HOME/build-tools/34.0.0/d8 \
+       --output out/Port1/final \
+       out/Port1/dex1/classes.dex \
+       out/Port1/dex2/classes.dex
+
+       ls -lah out/Port1/final/classes.dex
 
     - name: System Port File
       uses: actions/upload-artifact@v5
