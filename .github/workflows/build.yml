@@ -59,7 +59,7 @@ jobs:
        out/Port1/dex1/classes.dex \
        out/Port1/dex2/classes.dex
 
-       ls -lah out/Port1/final/classes.dex
+       ls -lah out/Port1/final/classes.zip
 
     - name: System Port File
       uses: actions/upload-artifact@v5
