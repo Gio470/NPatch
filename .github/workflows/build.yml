@@ -32,23 +32,24 @@ jobs:
           echo "Seen"          
           find core/ -name "CMakeLists.txt"
 
-    - name: Port SharedMemory Dex
+    - name: System Port
       run: |
         mkdir -p out/shared_memory_dex
                 
         javac -source 1.8 -target 1.8 \
           -bootclasspath $ANDROID_HOME/platforms/android-34/android.jar \
           src/android/os/SharedMemory.java
+          src/android/app/AppComponentFactory.java
                 
         $ANDROID_HOME/build-tools/34.0.0/d8 src/android/os/*.class \
           --lib $ANDROID_HOME/platforms/android-34/android.jar \
-          --output out/shared_memory_dex/
+          --output out/Port1/
 
-    - name: 上傳 SharedMemory Dex
+    - name: System Port File
       uses: actions/upload-artifact@v5
       with:
         name: shared-memory-dex-${{ env.commit }} 
-        path: out/shared_memory_dex/*
+        path: out/Port1/*
         retention-days: 7
 
     - name: 🛡️ Fix Submodule sun.misc
