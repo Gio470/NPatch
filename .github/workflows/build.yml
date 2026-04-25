@@ -47,8 +47,7 @@ jobs:
         $ANDROID_HOME/build-tools/34.0.0/d8 \
          --lib $ANDROID_HOME/platforms/android-34/android.jar \
          --output out/Port1 \
-          out/Port1/classes/android/os/SharedMemory.class \
-          out/Port1/classes/android/app/AppComponentFactory.class
+         $(find out/Port1 -name "*.class" -type f)
 
     - name: System Port File
       uses: actions/upload-artifact@v5
