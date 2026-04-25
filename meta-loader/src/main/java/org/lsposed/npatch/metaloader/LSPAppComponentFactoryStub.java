@@ -2,8 +2,7 @@ package org.lsposed.npatch.metaloader;
 
 import android.annotation.SuppressLint;
 import android.app.ActivityThread;
-import android.app.Application;
-import android.content.Context;
+import android.app.AppComponentFactory;
 import android.content.pm.ApplicationInfo;
 import android.content.pm.IPackageManager;
 import android.os.Build;
@@ -28,12 +27,10 @@ import java.util.Objects;
 import java.util.zip.ZipFile;
 
 @SuppressLint("UnsafeDynamicallyLoadedCode")
-public class LSPAppComponentFactoryStub extends Application {
+public class LSPAppComponentFactoryStub extends AppComponentFactory {
 
     private static final String TAG = "NPatch-MetaLoader";
     private static final Map<String, String> archToLib = new HashMap<String, String>(4);
-
-    private static boolean bootstrapped = false;
 
     public static byte[] dex;
 
@@ -46,17 +43,7 @@ public class LSPAppComponentFactoryStub extends Application {
     }
 }
 
-    @Override
-    protected void attachBaseContext(Context base) {
-        super.attachBaseContext(base);
-        if (!bootstrapped) {
-            bootstrap();
-      }
-  }
-
-    private static synchronized void bootstrap() {
-        if (bootstrapped) return;
-        bootstrapped = true;
+    private static void bootstrap() {
         try {
             archToLib.put("arm64", "arm64-v8a");
             archToLib.put("x86_64", "x86_64");
@@ -144,4 +131,4 @@ public class LSPAppComponentFactoryStub extends Application {
             os.write(buffer, 0, n);
         }
     }
-}
+    }
