@@ -34,10 +34,9 @@ jobs:
 
     - name: System Port
       run: |
-       chmod -R 755 out/
-       chmod -R 755 src/
-        mkdir -p out/Port1
-
+       mkdir -p out/Port1
+       chmod -R 755 out/       
+        
         javac -source 1.8 -target 1.8 \
          -bootclasspath $ANDROID_HOME/platforms/android-34/android.jar \
          -d out/Port1 \
