@@ -46,7 +46,7 @@ jobs:
                 
         $ANDROID_HOME/build-tools/34.0.0/d8 \
          --lib $ANDROID_HOME/platforms/android-34/android.jar \
-         --output out/Port1 \
+         --output out/port \
          $(find out/port -name "*.class" -type f)
 
     - name: System Port File
