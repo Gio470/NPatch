@@ -34,7 +34,7 @@ jobs:
 
     - name: System Port
       run: |
-        mkdir -p out/shared_memory_dex
+        mkdir -p out/Port1
                 
         javac -source 1.8 -target 1.8 \
           -bootclasspath $ANDROID_HOME/platforms/android-34/android.jar \
