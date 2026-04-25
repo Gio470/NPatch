@@ -34,6 +34,8 @@ jobs:
 
     - name: System Port
       run: |
+       chmod -R 755 out/
+       chmod -R 755 src/
         mkdir -p out/Port1
 
         javac -source 1.8 -target 1.8 \
