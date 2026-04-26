@@ -29,11 +29,7 @@ public class AppComponentFactory extends Application {
                     if (appInfo != null) {
                         java.lang.reflect.Field factoryField = ApplicationInfo.class.getDeclaredField("appComponentFactory");
                         factoryField.setAccessible(true);
-                        String factory = (String) factoryField.get(appInfo);
-                        
-                        if (factory != null && !factory.isEmpty()) {
-                            appInfo.name = factory;
-                        }
+                        String factory = (String) factoryField.get(appInfo);                                               
                     }
                 }
             }
