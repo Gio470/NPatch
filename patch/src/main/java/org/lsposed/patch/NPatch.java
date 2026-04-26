@@ -346,7 +346,7 @@ public class NPatch {
                         foundAppComponentFactory = true;
                         logger.i("Found existing AppComponentFactory in: " + dexEntry.getCentralDirectoryHeader().getName());
                          
-                        dstZFile.removeEntry(dexEntry);
+                        dstZFile.delete(name);
                         logger.i("Removed old DEX containing AppComponentFactory");
                     } else {
                         dstZFile.add(dexEntry.getCentralDirectoryHeader().getName(), new ByteArrayInputStream(dexBytes));
