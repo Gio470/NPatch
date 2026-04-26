@@ -346,13 +346,13 @@ public class NPatch {
                         foundAppComponentFactory = true;
                         logger.i("Found existing AppComponentFactory in: " + dexEntry.getCentralDirectoryHeader().getName());
                          
-                        dstZFile.delete(dexEntry);
+                        dstZFile.delete(dexEntry, true);
                         logger.i("Removed old DEX containing AppComponentFactory");
                     } else {
                         dstZFile.add(dexEntry.getCentralDirectoryHeader().getName(), new ByteArrayInputStream(dexBytes));
                     }
                 } catch (Throwable t) {
-                    logger.e("Failed to check DEX: " + dexEntry.getCentralDirectoryHeader().getName(), t);
+                    logger.e("Failed to check DEX: " + dexEntry.getCentralDirectoryHeader().getName() + " " + t.getMessage());
                 }
             }
                                  
