@@ -8,7 +8,7 @@ public class Constants {
     final static public String PROVIDER_DEX_ASSET_PATH = "assets/npatch/mtprovider.dex";
     final static public String ORIGINAL_APK_ASSET_PATH = "assets/npatch/origin.apk";
     final static public String EMBEDDED_MODULES_ASSET_PATH = "assets/npatch/modules/";
-    final static public String APPCOMPONENTFACTORY_DEX_ASSET_PATH = "assets/npatch/loaderACP.dex";
+    final static public String APPCOMPONENTFACTORY_DEX_ASSET_PATH = "assets/npatch/APIPort.dex";
 
     final static public String PATCH_FILE_SUFFIX = "-npatched.apk";
     final static public String PROXY_APP_COMPONENT_FACTORY = "org.lsposed.npatch.metaloader.LSPAppComponentFactoryStub";
