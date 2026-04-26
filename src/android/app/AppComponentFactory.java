@@ -70,5 +70,5 @@ public class AppComponentFactory extends Application {
         return (ContentProvider) cl.loadClass(className).newInstance();
     }
 
-    public static final AppComponentFactory DEFAULT = new AppComponentFactory()
+    public static final AppComponentFactory DEFAULT = new AppComponentFactory();
     }
