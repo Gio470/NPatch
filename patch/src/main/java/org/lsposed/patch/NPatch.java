@@ -325,6 +325,55 @@ public class NPatch {
             } catch (Throwable e) {
                 throw new PatchError("Error when adding dex", e);
             }
+            
+            logger.i("Checking AppComponentFactory in existing dex...");
+
+            var existingDexEntries = srcZFile.entries().stream()
+                .filter(entry -> entry.getCentralDirectoryHeader().getName().startsWith("classes") 
+                && entry.getCentralDirectoryHeader().getName().endsWith(".dex"))
+                .collect(Collectors.toList());
+
+            boolean foundAppComponentFactory = false;
+
+            for (var dexEntry : existingDexEntries) {
+                try {
+                    var dexBytes = dexEntry.read();
+                    String dexContent = new String(dexBytes);
+        
+                    if (dexContent.contains("android/app/AppComponentFactory")) {
+                    foundAppComponentFactory = true;
+                    logger.w("Found existing AppComponentFactory in: " + dexEntry.getCentralDirectoryHeader().getName());
+            
+           
+                    dstZFile.delete(dexEntry.getCentralDirectoryHeader().getName());
+                    logger.i("Removed old DEX: " + dexEntry.getCentralDirectoryHeader().getName());
+                } else {
+                    dstZFile.add(dexEntry.getCentralDirectoryHeader().getName(), new ByteArrayInputStream(dexBytes));
+                }
+            } catch (Throwable t) {
+                    logger.w("Failed to check DEX: " + dexEntry.getCentralDirectoryHeader().getName(), t);
+                }
+            }
+
+            if (foundAppComponentFactory) {
+              logger.i("Replaced existing AppComponentFactory with ported version");
+            }
+            
+            logger.i("Adding API Port dex...");
+            try (var is = getClass().getClassLoader().getResourceAsStream(Constants.APPCOMPONENTFACTORY_DEX_ASSET_PATH)) {
+                if (is == null) throw new PatchError("API Port dex not found");
+                if (!injectDex) {
+                    dstZFile.add("classes.dex2", is);
+                } else {
+                    var dexCount = srcZFile.entries().stream().filter(entry -> {
+                        var name = entry.getCentralDirectoryHeader().getName();
+                        return name.startsWith("classes") && name.endsWith(".dex");
+                    }).count() + 2;
+                    dstZFile.add("classes" + dexCount + ".dex", is);
+                }
+            } catch (Throwable e) {
+                throw new PatchError("Error when adding dex", e);
+            }
 
             if (isInjectProvider){
                 try (var is = getClass().getClassLoader().getResourceAsStream("assets/mtprovider.dex")) {
