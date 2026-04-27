@@ -325,37 +325,7 @@ public class NPatch {
             } catch (Throwable e) {
                 throw new PatchError("Error when adding dex", e);
             }
-            
-            logger.i("Checking AppComponentFactory in existing dex...");
-
-            var existingDexEntries = srcZFile.entries().stream()
-            .filter(entry -> {
-                 var name = entry.getCentralDirectoryHeader().getName();
-                 return name.startsWith("classes") && name.endsWith(".dex");
-             })
-            .collect(Collectors.toList());
-
-            boolean foundAppComponentFactory = false;
-
-            for (var dexEntry : existingDexEntries) {
-                try {
-                    var dexBytes = dexEntry.read();
-                    String dexContent = new String(dexBytes);
-        
-                    if (dexContent.contains("android/app/AppComponentFactory")) {
-                        foundAppComponentFactory = true;
-                        logger.i("Found existing AppComponentFactory in: " + dexEntry.getCentralDirectoryHeader().getName());
-                         
-                        dstZFile.delete(name);
-                        logger.i("Removed old DEX containing AppComponentFactory");
-                    } else {
-                        dstZFile.add(dexEntry.getCentralDirectoryHeader().getName(), new ByteArrayInputStream(dexBytes));
-                    }
-                } catch (Throwable t) {
-                    logger.e("Failed to check DEX: " + dexEntry.getCentralDirectoryHeader().getName() + " " + t.getMessage());
-                }
-            }
-                                 
+                        
             logger.i("Adding API Port dex...");
             try (var is = getClass().getClassLoader().getResourceAsStream(Constants.APPCOMPONENTFACTORY_DEX_ASSET_PATH)) {
                 if (is == null) throw new PatchError("API Port dex not found");
