@@ -18,20 +18,37 @@ public class AppComponentFactory extends Application {
     private static void appComponentFactory() {
         try {
             Class<?> activityThreadClass = Class.forName("android.app.ActivityThread");
-            Object currentThread = activityThreadClass.getMethod("currentActivityThread").invoke(null);
-            
-            if (currentThread != null) {
-                Object boundApp = activityThreadClass.getField("mBoundApplication").get(currentThread);
-                if (boundApp != null) {
-                    ApplicationInfo appInfo = (ApplicationInfo) boundApp.getClass()
-                        .getField("appInfo").get(boundApp);
-                    
-                    if (appInfo != null) {
-                        java.lang.reflect.Field factoryField = ApplicationInfo.class.getDeclaredField("appComponentFactory");
-                        factoryField.setAccessible(true);
-                        String factory = (String) factoryField.get(appInfo);                                               
-                    }
-                }
+            Object currentThread = activityThreadClass
+                .getMethod("currentActivityThread")
+                .invoke(null);
+
+            if (currentThread == null) return;
+
+            Object boundApp = activityThreadClass
+                .getDeclaredField("mBoundApplication")
+                .get(currentThread);
+
+            if (boundApp == null) return;
+
+            ApplicationInfo appInfo = (ApplicationInfo) boundApp
+                .getClass()
+                .getDeclaredField("appInfo")
+                .get(boundApp);
+
+            if (appInfo == null) return;
+
+            java.lang.reflect.Field factoryField = ApplicationInfo.class
+                .getDeclaredField("appComponentFactory");
+            factoryField.setAccessible(true);
+            String factory = (String) factoryField.get(appInfo);
+
+            if (factory != null && !factory.isEmpty() && appInfo.name == null) {
+                appInfo.name = factory;
+                
+                java.lang.reflect.Field nameField = ApplicationInfo.class
+                    .getDeclaredField("name");
+                nameField.setAccessible(true);
+                nameField.set(appInfo, factory);
             }
         } catch (Throwable t) {
         }
