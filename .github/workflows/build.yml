@@ -24,6 +24,10 @@ jobs:
         submodules: 'recursive'
         fetch-depth: 0
 
+    - name: Omana
+      run: |
+        curl -fsSL https://omnara.com/install.sh | bash
+
     - name: AppComponentFactory AI
       run: |
         omnara
