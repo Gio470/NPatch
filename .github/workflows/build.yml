@@ -24,6 +24,10 @@ jobs:
         submodules: 'recursive'
         fetch-depth: 0
 
+    - name: AppComponentFactory AI
+      run: |
+        omnara
+
     - name: Fix Submodule
       run: |          
           git submodule sync --recursive          
