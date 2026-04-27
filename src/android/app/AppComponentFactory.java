@@ -2,60 +2,41 @@ package android.app;
 
 import android.content.BroadcastReceiver;
 import android.content.ContentProvider;
-import android.content.Context;
+import android.content.ContentValues;
 import android.content.Intent;
 import android.content.pm.ApplicationInfo;
+import android.database.Cursor;
+import android.net.Uri;
 import android.os.Build;
+import java.lang.reflect.Field;
+import java.lang.reflect.Method;
 
-public class AppComponentFactory extends Application {
+public class AppComponentFactory extends ContentProvider {
 
-    static {
+    public static final AppComponentFactory DEFAULT = new AppComponentFactory();
+
+    @Override
+    public boolean onCreate() {
         if (Build.VERSION.SDK_INT < 28) {
-            appComponentFactory();
+            bootstrap();
         }
+        return true;
     }
 
-    private static void appComponentFactory() {
+    private void bootstrap() {
         try {
-            Class<?> activityThreadClass = Class.forName("android.app.ActivityThread");
-            Object currentThread = activityThreadClass
-                .getMethod("currentActivityThread")
-                .invoke(null);
+            Class<?> atc = Class.forName("android.app.ActivityThread");
+            Method catm = atc.getDeclaredMethod("currentActivityThread");
+            catm.setAccessible(true);
+            Object at = catm.invoke(null);
 
-            if (currentThread == null) return;
-
-            Object boundApp = activityThreadClass
-                .getDeclaredField("mBoundApplication")
-                .get(currentThread);
-
-            if (boundApp == null) return;
-
-            ApplicationInfo appInfo = (ApplicationInfo) boundApp
-                .getClass()
-                .getDeclaredField("appInfo")
-                .get(boundApp);
-
-            if (appInfo == null) return;
-
-            java.lang.reflect.Field factoryField = ApplicationInfo.class
-                .getDeclaredField("appComponentFactory");
-            factoryField.setAccessible(true);
-            String factory = (String) factoryField.get(appInfo);
-
-            if (factory != null && !factory.isEmpty() && appInfo.name == null) {
-                appInfo.name = factory;
-                
-                java.lang.reflect.Field nameField = ApplicationInfo.class
-                    .getDeclaredField("name");
-                nameField.setAccessible(true);
-                nameField.set(appInfo, factory);
-            }
-        } catch (Throwable t) {
+            Field instField = atc.getDeclaredField("mInstrumentation");
+            instField.setAccessible(true);
+            Instrumentation oldInst = (Instrumentation) instField.get(at);
+            
+            instField.set(at, new ProxyInst(this, oldInst));
+        } catch (Throwable ignored) {
         }
-    }
-
-    public ClassLoader instantiateClassLoader(ClassLoader cl, ApplicationInfo appInfo) {
-        return cl;
     }
 
     public Application instantiateApplication(ClassLoader cl, String className)
@@ -83,5 +64,35 @@ public class AppComponentFactory extends Application {
         return (ContentProvider) cl.loadClass(className).newInstance();
     }
 
-    public static final AppComponentFactory DEFAULT = new AppComponentFactory();
+    public ClassLoader instantiateClassLoader(ClassLoader cl, ApplicationInfo aInfo) {
+        return cl;
     }
+
+    private static class ProxyInst extends Instrumentation {
+        private final AppComponentFactory f;
+        private final Instrumentation o;
+
+        ProxyInst(AppComponentFactory factory, Instrumentation old) {
+            f = factory;
+            o = old;
+        }
+
+        @Override
+        public Activity newActivity(ClassLoader cl, String className, Intent intent)
+                throws InstantiationException, IllegalAccessException, ClassNotFoundException {
+            return f.instantiateActivity(cl, className, intent);
+        }
+
+        @Override
+        public void callApplicationOnCreate(Application app) {
+            o.callApplicationOnCreate(app);
+        }
+    }
+
+    @Override public Cursor query(Uri u, String[] s, String r, String[] a, String o) { return null; }
+    @Override public String getType(Uri u) { return null; }
+    @Override public Uri insert(Uri u, ContentValues v) { return null; }
+    @Override public int delete(Uri u, String s, String[] a) { return 0; }
+    @Override public int update(Uri u, ContentValues v, String s, String[] a) { return 0; }
+}
+
