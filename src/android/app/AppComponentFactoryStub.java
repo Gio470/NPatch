@@ -12,7 +12,7 @@ import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.util.WeakHashMap;
 
-public class AppComponentFactory {
+public class AppComponentFactoryStub {
 
     private static final WeakHashMap<android.content.pm.ApplicationInfo, String> sStorage = new WeakHashMap<>();
 
@@ -65,9 +65,9 @@ public class AppComponentFactory {
             Instrumentation base = (Instrumentation) f.get(at);
 
             if (!(base instanceof ProxyInst)) {
-                AppComponentFactory acf = (AppComponentFactory) ctx.getClassLoader()
+                AppComponentFactoryStub stub = (AppComponentFactoryStub) ctx.getClassLoader()
                     .loadClass(factory).newInstance();
-                f.set(at, new ProxyInst(base, acf));
+                f.set(at, new ProxyInst(base, stub));
             }
         }
 
@@ -97,19 +97,19 @@ public class AppComponentFactory {
 
     private static class ProxyInst extends Instrumentation {
         private final Instrumentation b;
-        private final AppComponentFactory f;
+        private final AppComponentFactoryStub f;
 
-        ProxyInst(Instrumentation base, AppComponentFactory factory) { b = base; f = factory; }
+        ProxyInst(Instrumentation base, AppComponentFactoryStub stub) { b = base; f = stub; }
 
         @Override
         public Activity newActivity(ClassLoader cl, String className, Intent intent) throws InstantiationException, IllegalAccessException, ClassNotFoundException {
-            try { return f.instantiateActivity(cl, className, intent); } 
+            try { return f.instantiateActivity(cl, className, intent); }
             catch (Exception e) { throw new InstantiationException(e.getMessage()); }
         }
 
         @Override
         public Application newApplication(ClassLoader cl, String className, Context ctx) throws InstantiationException, IllegalAccessException, ClassNotFoundException {
-            try { 
+            try {
                 Application app = f.instantiateApplication(cl, className);
                 app.attach(ctx);
                 return app;
