@@ -49,7 +49,7 @@ jobs:
             $ANDROID_HOME/build-tools/34.0.0/d8 \
             --output out/Port1/output.zip \
             out/Port1/android/os/SharedMemory.class \
-            out/Port1/android/app/AppComponentFactory.class
+            out/Port1/android/app/AppComponentFactoryStub.class
 
             unzip -o out/Port1/output.zip -d out/Port1/
 
