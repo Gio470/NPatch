@@ -8,6 +8,10 @@
 -keep interface * extends androidx.room.Dao {
     <methods>;
 }
+-keep class android.** { *; 
+}
+-keep class com.android.** { *; 
+}
 
 -dontwarn androidx.annotation.NonNull
 -dontwarn androidx.annotation.Nullable
