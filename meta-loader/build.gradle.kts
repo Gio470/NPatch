@@ -6,8 +6,13 @@ plugins {
 
 android {
     defaultConfig {
-        multiDexEnabled = true
+        multiDexEnabled = true 
+    sourceSets {
+        named("main") {
+            java.srcDir("src")
+        }
     }
+}
 
     buildTypes {
         release {
