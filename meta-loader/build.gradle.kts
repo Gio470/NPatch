@@ -9,7 +9,7 @@ android {
         multiDexEnabled = true 
     sourceSets {
         named("main") {
-            java.srcDir("src")
+            java.srcDir("${rootProject.projectDir}/src") 
         }
     }
 }
