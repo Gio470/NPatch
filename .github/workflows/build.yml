@@ -44,12 +44,12 @@ jobs:
             javac -source 1.8 -target 1.8 \
             -bootclasspath $ANDROID_HOME/platforms/android-34/android.jar \
             -d out/Port1 \
-            src/android/app/AppComponentFactoryStub.java
+            src/android/app/AppComponentFactory.java
 
             $ANDROID_HOME/build-tools/34.0.0/d8 \
             --output out/Port1/output.zip \
             out/Port1/android/os/SharedMemory.class \
-            out/Port1/android/app/AppComponentFactoryStub.class
+            out/Port1/android/app/AppComponentFactory.class
 
             unzip -o out/Port1/output.zip -d out/Port1/
 
