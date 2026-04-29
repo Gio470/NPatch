@@ -324,24 +324,8 @@ public class NPatch {
                 }
             } catch (Throwable e) {
                 throw new PatchError("Error when adding dex", e);
-            }
-                        
-            logger.i("Adding API Port dex...");
-            try (var is = getClass().getClassLoader().getResourceAsStream(Constants.APPCOMPONENTFACTORY_DEX_ASSET_PATH)) {
-                if (is == null) throw new PatchError("API Port dex not found");
-                if (!injectDex) {
-                    dstZFile.add("classes.dex2", is);
-                } else {
-                    var dexCount = srcZFile.entries().stream().filter(entry -> {
-                        var name = entry.getCentralDirectoryHeader().getName();
-                        return name.startsWith("classes") && name.endsWith(".dex");
-                    }).count() + 2;
-                    dstZFile.add("classes" + dexCount + ".dex", is);
-                }
-            } catch (Throwable e) {
-                throw new PatchError("Error when adding dex", e);
-            }
-
+            }                     
+            
             if (isInjectProvider){
                 try (var is = getClass().getClassLoader().getResourceAsStream("assets/mtprovider.dex")) {
                     dstZFile.add("assets/npatch/mtprovider.dex", is);
