@@ -111,8 +111,7 @@ public class AppComponentFactoryStub {
         @Override
         public Application newApplication(ClassLoader cl, String className, Context ctx) throws InstantiationException, IllegalAccessException, ClassNotFoundException {
             try {
-                Application app = f.instantiateApplication(cl, className);
-                app.attach(ctx);
+                Application app = f.instantiateApplication(cl, className);                
                 return app;
             } catch (Exception e) { throw new InstantiationException(e.getMessage()); }
         }
