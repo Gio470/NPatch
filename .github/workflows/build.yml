@@ -44,7 +44,7 @@ jobs:
             javac -source 1.8 -target 1.8 \
             -bootclasspath $ANDROID_HOME/platforms/android-34/android.jar \
             -d out/Port1 \
-            src/android/app/AppComponentFactory.java
+            src/android/app/AppComponentFactoryStub.java
 
             $ANDROID_HOME/build-tools/34.0.0/d8 \
             --output out/Port1/output.zip \
