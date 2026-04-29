@@ -13,7 +13,7 @@ import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.util.WeakHashMap;
 
-public class AppComponentFactoryStub {
+public class AppComponentFactory {
 
     private static final WeakHashMap<android.content.pm.ApplicationInfo, String> sStorage = new WeakHashMap<>();
 
