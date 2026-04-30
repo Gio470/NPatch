@@ -17,8 +17,9 @@ public class AppComponentFactoryBackport {
         public boolean onCreate() {
             if (android.os.Build.VERSION.SDK_INT < 28) {
                 try {
-                    Class<?> atClass = Class.forName("android.app.ActivityThread");
-                    Object at = atClass.getDeclaredMethod("currentActivityThread").invoke(null);
+                    Class<?> atc = Class.forName("android.app.ActivityThread");
+                    Object at = atc.getDeclaredMethod("currentActivityThread").invoke(null);
+                    
                     String fName = null;
                     try (XmlResourceParser p = getContext().getAssets().openXmlResourceParser("AndroidManifest.xml")) {
                         int t;
@@ -33,12 +34,18 @@ public class AppComponentFactoryBackport {
                             }
                         }
                     }
+
                     if (fName != null) {
-                        Object factory = getContext().getClassLoader().loadClass(fName).newInstance();
-                        Field f = atClass.getDeclaredField("mInstrumentation");
+                        ClassLoader cl = getContext().getClassLoader();
+                        AppComponentFactory factory = (AppComponentFactory) cl.loadClass(fName).newInstance();
+                        
+                        Field f = atc.getDeclaredField("mInstrumentation");
                         f.setAccessible(true);
                         Instrumentation base = (Instrumentation) f.get(at);
-                        f.set(at, new ProxyInst(base, factory));
+                        
+                        if (!(base instanceof ProxyInst)) {
+                            f.set(at, new ProxyInst(base, factory));
+                        }
                     }
                 } catch (Throwable ignored) {}
             }
@@ -54,28 +61,35 @@ public class AppComponentFactoryBackport {
 
     private static class ProxyInst extends Instrumentation {
         private final Instrumentation b;
-        private final Object f;
+        private final AppComponentFactory f;
 
-        ProxyInst(Instrumentation base, Object factory) { b = base; f = factory; }
+        ProxyInst(Instrumentation base, AppComponentFactory factory) {
+            this.b = base;
+            this.f = factory;
+        }
 
         @Override
         public Activity newActivity(ClassLoader cl, String className, Intent intent) throws InstantiationException, IllegalAccessException, ClassNotFoundException {
             try {
-                Method m = f.getClass().getMethod("instantiateActivity", ClassLoader.class, String.class, Intent.class);
-                return (Activity) m.invoke(f, cl, className, intent);
-            } catch (Throwable e) { return b.newActivity(cl, className, intent); }
+                return f.instantiateActivity(cl, className, intent);
+            } catch (Exception e) {
+                return b.newActivity(cl, className, intent);
+            }
         }
 
         @Override
         public Application newApplication(ClassLoader cl, String className, Context ctx) throws InstantiationException, IllegalAccessException, ClassNotFoundException {
             try {
-                Method m = f.getClass().getMethod("instantiateApplication", ClassLoader.class, String.class);
-                Application app = (Application) m.invoke(f, cl, className);
-                Method am = Application.class.getDeclaredMethod("attach", Context.class);
-                am.setAccessible(true);
-                am.invoke(app, ctx);
+                Application app = f.instantiateApplication(cl, className);
+                try {
+                    Method m = Application.class.getDeclaredMethod("attach", Context.class);
+                    m.setAccessible(true);
+                    m.invoke(app, ctx);
+                } catch (Throwable ignored) {}
                 return app;
-            } catch (Throwable e) { return b.newApplication(cl, className, ctx); }
+            } catch (Exception e) {
+                return b.newApplication(cl, className, ctx);
+            }
         }
 
         @Override public void callApplicationOnCreate(Application a) { b.callApplicationOnCreate(a); }
@@ -86,4 +100,4 @@ public class AppComponentFactoryBackport {
         @Override public void callActivityOnStart(Activity a) { b.callActivityOnStart(a); }
         @Override public void callActivityOnStop(Activity a) { b.callActivityOnStop(a); }
     }
- }
+                                            }
