@@ -22,42 +22,39 @@ public class AppComponentFactoryBackport {
         @Override
         public boolean onCreate() {
             if (android.os.Build.VERSION.SDK_INT < 28) {
-                initBackport(getContext());
-            }
-            return true;
-        }
-
-        private void initBackport(Context context) {
-            try {
-                String fName = null;
-                try (XmlResourceParser p = context.getAssets().openXmlResourceParser("AndroidManifest.xml")) {
-                    int t;
-                    while ((t = p.next()) != 1) {
-                        if (t == 2 && "application".equals(p.getName())) {
-                            for (int i = 0; i < p.getAttributeCount(); i++) {
-                                if ("appComponentFactory".equals(p.getAttributeName(i))) {
-                                    fName = p.getAttributeValue(i);
-                                    break;
+                try {
+                    String fName = null;
+                    try (XmlResourceParser p = getContext().getAssets().openXmlResourceParser("AndroidManifest.xml")) {
+                        int t;
+                        while ((t = p.next()) != 1) {
+                            if (t == 2 && "application".equals(p.getName())) {
+                                for (int i = 0; i < p.getAttributeCount(); i++) {
+                                    if ("appComponentFactory".equals(p.getAttributeName(i))) {
+                                        fName = p.getAttributeValue(i);
+                                        break;
+                                    }
                                 }
+                                break;
                             }
                         }
                     }
+
+                    sCurrentFactory = (fName != null) ? (AppComponentFactory) getContext().getClassLoader().loadClass(fName).newInstance() : DEFAULT_FACTORY;
+
+                    Class<?> atc = Class.forName("android.app.ActivityThread");
+                    Object at = atc.getDeclaredMethod("currentActivityThread").invoke(null);
+                    Field f = atc.getDeclaredField("mInstrumentation");
+                    f.setAccessible(true);
+                    Instrumentation base = (Instrumentation) f.get(at);
+
+                    if (!(base instanceof ProxyInst)) {
+                        f.set(at, new ProxyInst(base, sCurrentFactory));
+                    }
+                } catch (Throwable ignored) {
+                    sCurrentFactory = DEFAULT_FACTORY;
                 }
-
-                sCurrentFactory = (fName != null) ? (AppComponentFactory) context.getClassLoader().loadClass(fName).newInstance() : DEFAULT_FACTORY;
-
-                Class<?> atc = Class.forName("android.app.ActivityThread");
-                Object at = atc.getDeclaredMethod("currentActivityThread").invoke(null);
-                Field f = atc.getDeclaredField("mInstrumentation");
-                f.setAccessible(true);
-                Instrumentation base = (Instrumentation) f.get(at);
-
-                if (!(base instanceof ProxyInst)) {
-                    f.set(at, new ProxyInst(base, sCurrentFactory));
-                }
-            } catch (Throwable ignored) {
-                sCurrentFactory = DEFAULT_FACTORY;
             }
+            return true;
         }
 
         @Override public Cursor query(Uri u, String[] p, String s, String[] a, String o) { return null; }
@@ -79,25 +76,26 @@ public class AppComponentFactoryBackport {
         @Override
         public Activity newActivity(ClassLoader cl, String className, Intent intent) throws InstantiationException, IllegalAccessException, ClassNotFoundException {
             try {
-                return mFactory.instantiateActivity(cl, className, intent);
-            } catch (Throwable e) {
-                return mBase.newActivity(cl, className, intent);
-            }
+                Activity a = mFactory.instantiateActivity(cl, className, intent);
+                if (a != null) return a;
+            } catch (Throwable ignored) {}
+            return mBase.newActivity(cl, className, intent);
         }
 
         @Override
         public Application newApplication(ClassLoader cl, String className, Context context) throws InstantiationException, IllegalAccessException, ClassNotFoundException {
             try {
-                Application app = mFactory.instantiateApplication(cl, className);
-                try {
-                    Method m = Application.class.getDeclaredMethod("attach", Context.class);
-                    m.setAccessible(true);
-                    m.invoke(app, context);
-                } catch (Throwable ignored) {}
-                return app;
-            } catch (Throwable e) {
-                return mBase.newApplication(cl, className, context);
-            }
+                if (mFactory != DEFAULT_FACTORY) {
+                    Application app = mFactory.instantiateApplication(cl, className);
+                    if (app != null) {
+                        Method m = Application.class.getDeclaredMethod("attach", Context.class);
+                        m.setAccessible(true);
+                        m.invoke(app, context);
+                        return app;
+                    }
+                }
+            } catch (Throwable ignored) {}
+            return mBase.newApplication(cl, className, context);
         }
 
         @Override public void callApplicationOnCreate(Application a) { mBase.callApplicationOnCreate(a); }
@@ -109,4 +107,3 @@ public class AppComponentFactoryBackport {
         @Override public void callActivityOnStop(Activity a) { mBase.callActivityOnStop(a); }
         }
      }
-                                            
