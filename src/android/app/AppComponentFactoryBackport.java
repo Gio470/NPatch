@@ -11,45 +11,62 @@ import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 
 public class AppComponentFactoryBackport {
+    private static AppComponentFactory sCurrentFactory;
+    private static final AppComponentFactory DEFAULT_FACTORY = new AppComponentFactory();
+
+    public static AppComponentFactory getAppFactory() {
+        return sCurrentFactory != null ? sCurrentFactory : DEFAULT_FACTORY;
+    }
 
     public static class AutoInit extends ContentProvider {
         @Override
         public boolean onCreate() {
             if (android.os.Build.VERSION.SDK_INT < 28) {
-                try {
-                    Class<?> atc = Class.forName("android.app.ActivityThread");
-                    Object at = atc.getDeclaredMethod("currentActivityThread").invoke(null);
-                    
-                    String fName = null;
-                    try (XmlResourceParser p = getContext().getAssets().openXmlResourceParser("AndroidManifest.xml")) {
-                        int t;
-                        while ((t = p.next()) != 1) {
-                            if (t == 2 && "application".equals(p.getName())) {
-                                for (int i = 0; i < p.getAttributeCount(); i++) {
-                                    if ("appComponentFactory".equals(p.getAttributeName(i))) {
-                                        fName = p.getAttributeValue(i);
-                                        break;
-                                    }
+                initBackport(getContext());
+            }
+            return true;
+        }
+
+        private void initBackport(Context context) {
+            try {
+                String factoryClassName = null;
+                try (XmlResourceParser p = context.getAssets().openXmlResourceParser("AndroidManifest.xml")) {
+                    int type;
+                    while ((type = p.next()) != XmlResourceParser.END_DOCUMENT) {
+                        if (type == XmlResourceParser.START_TAG && "application".equals(p.getName())) {
+                            for (int i = 0; i < p.getAttributeCount(); i++) {
+                                if ("appComponentFactory".equals(p.getAttributeName(i))) {
+                                    factoryClassName = p.getAttributeValue(i);
+                                    break;
                                 }
                             }
                         }
                     }
+                }
 
-                    if (fName != null) {
-                        ClassLoader cl = getContext().getClassLoader();
-                        AppComponentFactory factory = (AppComponentFactory) cl.loadClass(fName).newInstance();
-                        
-                        Field f = atc.getDeclaredField("mInstrumentation");
-                        f.setAccessible(true);
-                        Instrumentation base = (Instrumentation) f.get(at);
-                        
-                        if (!(base instanceof ProxyInst)) {
-                            f.set(at, new ProxyInst(base, factory));
-                        }
-                    }
+                sCurrentFactory = createAppFactory(factoryClassName, context.getClassLoader());
+
+                Class<?> atc = Class.forName("android.app.ActivityThread");
+                Object at = atc.getDeclaredMethod("currentActivityThread").invoke(null);
+                Field f = atc.getDeclaredField("mInstrumentation");
+                f.setAccessible(true);
+                Instrumentation base = (Instrumentation) f.get(at);
+                
+                if (!(base instanceof ProxyInst)) {
+                    f.set(at, new ProxyInst(base, sCurrentFactory));
+                }
+            } catch (Throwable ignored) {
+                sCurrentFactory = DEFAULT_FACTORY;
+            }
+        }
+
+        private AppComponentFactory createAppFactory(String factoryClassName, ClassLoader cl) {
+            if (factoryClassName != null && cl != null) {
+                try {
+                    return (AppComponentFactory) cl.loadClass(factoryClassName).newInstance();
                 } catch (Throwable ignored) {}
             }
-            return true;
+            return DEFAULT_FACTORY;
         }
 
         @Override public Cursor query(Uri u, String[] p, String s, String[] a, String o) { return null; }
@@ -60,44 +77,45 @@ public class AppComponentFactoryBackport {
     }
 
     private static class ProxyInst extends Instrumentation {
-        private final Instrumentation b;
-        private final AppComponentFactory f;
+        private final Instrumentation mBase;
+        private final AppComponentFactory mFactory;
 
         ProxyInst(Instrumentation base, AppComponentFactory factory) {
-            this.b = base;
-            this.f = factory;
+            this.mBase = base;
+            this.mFactory = factory;
         }
 
         @Override
         public Activity newActivity(ClassLoader cl, String className, Intent intent) throws InstantiationException, IllegalAccessException, ClassNotFoundException {
             try {
-                return f.instantiateActivity(cl, className, intent);
+                return mFactory.instantiateActivity(cl, className, intent);
             } catch (Exception e) {
-                return b.newActivity(cl, className, intent);
+                return mBase.newActivity(cl, className, intent);
             }
         }
 
         @Override
-        public Application newApplication(ClassLoader cl, String className, Context ctx) throws InstantiationException, IllegalAccessException, ClassNotFoundException {
+        public Application newApplication(ClassLoader cl, String className, Context context) throws InstantiationException, IllegalAccessException, ClassNotFoundException {
             try {
-                Application app = f.instantiateApplication(cl, className);
+                Application app = mFactory.instantiateApplication(cl, className);
                 try {
                     Method m = Application.class.getDeclaredMethod("attach", Context.class);
                     m.setAccessible(true);
-                    m.invoke(app, ctx);
+                    m.invoke(app, context);
                 } catch (Throwable ignored) {}
                 return app;
             } catch (Exception e) {
-                return b.newApplication(cl, className, ctx);
+                return mBase.newApplication(cl, className, context);
             }
         }
 
-        @Override public void callApplicationOnCreate(Application a) { b.callApplicationOnCreate(a); }
-        @Override public void callActivityOnCreate(Activity a, android.os.Bundle i) { b.callActivityOnCreate(a, i); }
-        @Override public void callActivityOnDestroy(Activity a) { b.callActivityOnDestroy(a); }
-        @Override public void callActivityOnPause(Activity a) { b.callActivityOnPause(a); }
-        @Override public void callActivityOnResume(Activity a) { b.callActivityOnResume(a); }
-        @Override public void callActivityOnStart(Activity a) { b.callActivityOnStart(a); }
-        @Override public void callActivityOnStop(Activity a) { b.callActivityOnStop(a); }
+        @Override public void callApplicationOnCreate(Application a) { mBase.callApplicationOnCreate(a); }
+        @Override public void callActivityOnCreate(Activity a, android.os.Bundle i) { mBase.callActivityOnCreate(a, i); }
+        @Override public void callActivityOnDestroy(Activity a) { mBase.callActivityOnDestroy(a); }
+        @Override public void callActivityOnPause(Activity a) { mBase.callActivityOnPause(a); }
+        @Override public void callActivityOnResume(Activity a) { mBase.callActivityOnResume(a); }
+        @Override public void callActivityOnStart(Activity a) { mBase.callActivityOnStart(a); }
+        @Override public void callActivityOnStop(Activity a) { mBase.callActivityOnStop(a); }
     }
+        }
                                             }
