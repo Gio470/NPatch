@@ -17,9 +17,7 @@ public class AppComponentFactoryBackport {
         @Override
         public void attachInfo(Context context, ProviderInfo info) {
             super.attachInfo(context, info);
-            if (android.os.Build.VERSION.SDK_INT < 28) {
-                init(context);
-            }
+            init(context);
         }
 
         private void init(Context context) {
@@ -47,6 +45,20 @@ public class AppComponentFactoryBackport {
 
                 Class<?> atc = Class.forName("android.app.ActivityThread");
                 Object at = atc.getDeclaredMethod("currentActivityThread").invoke(null);
+
+                Field mBoundAppField = atc.getDeclaredField("mBoundApplication");
+                mBoundAppField.setAccessible(true);
+                Object boundApp = mBoundAppField.get(at);
+
+                Field infoField = boundApp.getClass().getDeclaredField("info");
+                infoField.setAccessible(true);
+                Object loadedApk = infoField.get(boundApp);
+
+                try {
+                    Field fFactory = loadedApk.getClass().getDeclaredField("mAppComponentFactory");
+                    fFactory.setAccessible(true);
+                    fFactory.set(loadedApk, factory);
+                } catch (Throwable ignored) {}
 
                 Field fInst = atc.getDeclaredField("mInstrumentation");
                 fInst.setAccessible(true);
@@ -105,4 +117,4 @@ public class AppComponentFactoryBackport {
         @Override public void callActivityOnStart(Activity a) { b.callActivityOnStart(a); }
         @Override public void callActivityOnStop(Activity a) { b.callActivityOnStop(a); }
     }
-}
+                            }
