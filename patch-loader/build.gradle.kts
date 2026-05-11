@@ -26,6 +26,12 @@ android {
             version = "3.31.6"
         }
     }
+
+    packaging {
+        dex {
+            useLegacyPackaging = true
+        }
+    }
     namespace = "org.lsposed.npatch.loader"
 }
 
@@ -42,7 +48,6 @@ androidComponents.onVariants { variant ->
     val copySoTask = tasks.register<Copy>("copySo$variantCapped") {
         dependsOn("assemble$variantCapped")
         dependsOn("strip${variantCapped}DebugSymbols")
-        val libDir = variant.name + "/strip${variantCapped}DebugSymbols"
         from(
             fileTree(
                 "dir" to layout.buildDirectory.dir("intermediates/stripped_native_libs/${variant.name}/strip${variantCapped}DebugSymbols/out/lib"),
@@ -63,10 +68,11 @@ androidComponents.onVariants { variant ->
 }
 
 dependencies {
-    compileOnly(projects.hiddenapi.stubs)
-    implementation(projects.core)
-    implementation(projects.hiddenapi.bridge)
-    implementation(projects.services.daemonService)
+    compileOnly("vector:stubs")
+    implementation("vector:core")
+    implementation("vector:bridge")
+    implementation("vector:daemon-service")
+    implementation("vector:legacy")
     implementation(projects.share.android)
     implementation(projects.share.java)
 

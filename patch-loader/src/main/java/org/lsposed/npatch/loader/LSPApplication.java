@@ -19,13 +19,14 @@ import com.google.gson.Gson;
 
 import org.json.JSONArray;
 import org.json.JSONObject;
-import org.lsposed.lspd.core.Startup;
 import org.lsposed.lspd.models.Module;
 import org.lsposed.lspd.service.ILSPApplicationService;
+import org.matrix.vector.Startup;
 import org.lsposed.npatch.loader.util.XLog;
 import org.lsposed.npatch.service.IntegrApplicationService;
 import org.lsposed.npatch.service.NeoLocalApplicationService;
 import org.lsposed.npatch.service.RemoteApplicationService;
+import org.lsposed.npatch.share.Constants;
 import org.lsposed.npatch.share.PatchConfig;
 
 import java.io.BufferedReader;
@@ -39,6 +40,7 @@ import java.lang.reflect.Field;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -68,6 +70,14 @@ public class LSPApplication {
 
     private static PatchConfig config;
 
+    private static void logInfo(String msg) {
+        XLog.i(TAG, msg);
+    }
+
+    private static void logWarn(String msg) {
+        XLog.w(TAG, msg);
+    }
+
     public static boolean isIsolated() {
         return (Process.myUid() % PER_USER_RANGE) >= FIRST_APP_ZYGOTE_ISOLATED_UID;
     }
@@ -93,7 +103,7 @@ public class LSPApplication {
             return;
         }
 
-        Log.d(TAG, "Initialize service client");
+        logInfo("Initialize service client");
         ILSPApplicationService service = null;
 
         if (config.useManager) {
@@ -111,26 +121,26 @@ public class LSPApplication {
                 }
                 SharedPreferences shared = context.getSharedPreferences("npatch", Context.MODE_PRIVATE);
                 shared.edit().putString("modules", moduleArr.toString()).apply();
-                Log.i(TAG, "Success update module scope from Manager");
+                logInfo("Success update module scope from Manager");
             } catch (Throwable e) {
-                Log.w(TAG, "Failed to connect to manager: " + e.getMessage());
+                logWarn("Failed to connect to manager: " + e.getMessage());
                 service = null;
             }
         }
 
         if (service == null) {
             if (hasEmbeddedModules(context)) {
-                Log.i(TAG, "Using Integrated Service (Embedded Modules Found)");
+                logInfo("Using Integrated Service (Embedded Modules Found)");
                 service = new IntegrApplicationService(context);
             } else {
-                Log.i(TAG, "Using NeoLocal Service (Cached Config)");
+                logInfo("Using NeoLocal Service (Cached Config)");
                 service = new NeoLocalApplicationService(context);
             }
         }
 
         disableProfile(context);
         Startup.initXposed(false, ActivityThread.currentProcessName(), context.getApplicationInfo().dataDir, service);
-        Startup.bootstrapXposed();
+        Startup.bootstrapXposed(false);
 
         // WARN: Since it uses `XResource`, the following class should not be initialized
         // before forkPostCommon is invoke. Otherwise, you will get failure of XResources
@@ -138,19 +148,19 @@ public class LSPApplication {
         if (config.outputLog) {
             XposedBridge.setLogPrinter(new XposedLogPrinter(0, "NPatch"));
         }
-        Log.i(TAG, "Load modules");
+        logInfo("Load modules");
         LSPLoader.initModules(appLoadedApk);
-        Log.i(TAG, "Modules initialized");
+        logInfo("Modules initialized");
 
         switchAllClassLoader();
         SigBypass.doSigBypass(context, config.sigBypassLevel);
 
         if (config.useMicroG) {
-            Log.i(TAG, "Activating MicroG redirect via NPatch");
+            logInfo("Activating MicroG redirect via NPatch");
             GmsRedirector.activate(context, config.originalSignature);
         }
 
-        Log.i(TAG, "NPatch bootstrap completed");
+        logInfo("NPatch bootstrap completed");
     }
 
     private static Context createLoadedApkWithContext() {
@@ -168,22 +178,25 @@ public class LSPApplication {
                 BufferedReader streamReader = new BufferedReader(new InputStreamReader(is, StandardCharsets.UTF_8));
                 config = GSON.fromJson(streamReader, PatchConfig.class);
             } catch (IOException e) {
-                Log.e(TAG, "Failed to load config file", e);
-                return null;
+                throw new RuntimeException(e);
             }
+            XLog.init(config.newPackage, ActivityThread.currentProcessName(), config.outputLog);
+            logInfo("Loaded patch config for " + config.newPackage + ", useManager=" + config.useManager + ", outputLog=" + config.outputLog);
             Log.i(TAG, "Use manager: " + config.useManager);
             Log.i(TAG, "Signature bypass level: " + config.sigBypassLevel);
 
-            Path cacheApkPath = OriginApkHelper.prepareOriginApk(appInfo, baseClassLoader);
-            long sourceCrc = OriginApkHelper.getOriginalApkCrc(appInfo.sourceDir);
-
-            appInfo.sourceDir = cacheApkPath.toString();
-            appInfo.publicSourceDir = cacheApkPath.toString();
+            if (config.sigBypassLevel >= Constants.SIGBYPASS_LV_PM_OPENAT) {
+                Path cacheApkPath = OriginApkHelper.prepareOriginApk(appInfo, baseClassLoader);
+                appInfo.sourceDir = cacheApkPath.toString();
+                appInfo.publicSourceDir = cacheApkPath.toString();
+            }
             appInfo.appComponentFactory = config.appComponentFactory;
 
             Path providerPath = null;
             if (config.injectProvider) {
-                providerPath = cacheApkPath.getParent().resolve("p_" + sourceCrc + ".dex");
+                Path providerDir = Paths.get(appInfo.dataDir, "cache/npatch/origin/");
+                if (!Files.exists(providerDir)) Files.createDirectories(providerDir);
+                providerPath = providerDir.resolve("provider.dex");
                 try {
                     Files.deleteIfExists(providerPath);
                     try (InputStream is = baseClassLoader.getResourceAsStream(PROVIDER_DEX_ASSET_PATH)) {

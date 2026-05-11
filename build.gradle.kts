@@ -24,11 +24,12 @@ buildscript {
 
 val commitCount = run {
     val repo = FileRepository(rootProject.file(".git"))
-    val refId = repo.refDatabase.exactRef("refs/remotes/origin/master").objectId!!
+    val refId = repo.refDatabase.exactRef("refs/remotes/origin/miuix").objectId!!
     Git(repo).log().add(refId).call().count()
 }
 
-val (coreCommitCount, coreLatestTag) = FileRepositoryBuilder().setGitDir(rootProject.file(".git/modules/core"))
+val (coreCommitCount, coreLatestTag) = FileRepositoryBuilder().setGitDir(rootProject.file("core/.git"))
+    .setWorkTree(rootProject.file("core"))
     .runCatching {
         build().use { repo ->
             val git = Git(repo)
@@ -36,7 +37,7 @@ val (coreCommitCount, coreLatestTag) = FileRepositoryBuilder().setGitDir(rootPro
             val ver = git.describe().setTags(true).setAbbrev(0).call().removePrefix("v")
             coreCommitCount to ver
         }
-    }.getOrNull() ?: (1145 to "1.0")
+    }.getOrNull() ?: (3015 to "2.0")
 
 val defaultManagerPackageName by extra("org.lsposed.npatch")
 val apiCode by extra(100)
@@ -87,6 +88,7 @@ fun Project.configureBaseExtension() {
 
             externalNativeBuild {
                 cmake {
+                    arguments += "-DVECTOR_ROOT=${File(rootDir.absolutePath, "core")}"
                     arguments += "-DEXTERNAL_ROOT=${File(rootDir.absolutePath, "core/external")}"
                     arguments += "-DCORE_ROOT=${File(rootDir.absolutePath, "core/core/src/main/jni")}"
                     abiFilters("arm64-v8a", "x86_64")

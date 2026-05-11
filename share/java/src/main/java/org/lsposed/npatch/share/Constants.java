@@ -13,10 +13,11 @@ public class Constants {
     final static public String PROXY_APP_COMPONENT_FACTORY = "org.lsposed.npatch.metaloader.LSPAppComponentFactoryStub";
     final static public String MANAGER_PACKAGE_NAME = "org.lsposed.npatch";
     final static public String REAL_GMS_PACKAGE_NAME = "com.google.android.gms";
-    final static public int MIN_ROLLING_VERSION_CODE = 400;
+    final static public int MIN_ROLLING_VERSION_CODE = 580;
 
     final static public int SIGBYPASS_LV_DISABLE = 0;
-    final static public int SIGBYPASS_LV_PM = 1;
-    final static public int SIGBYPASS_LV_PM_OPENAT = 2;
-    final static public int SIGBYPASS_LV_SVC = 3;
+    public static final int SIGBYPASS_LV_PM = 1;
+    public static final int SIGBYPASS_LV_PM_OPENAT = 2;
+    public static final int SIGBYPASS_LV_PATH_REDIR = 3;
+    public static final int SIGBYPASS_LV_SVC = 4;
 }
