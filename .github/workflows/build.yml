@@ -4,7 +4,6 @@ on:
   workflow_dispatch:
   pull_request:
   push:
-    branches: [ "open-source" ]
   merge_group:
 
 jobs:
