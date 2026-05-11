@@ -29,20 +29,7 @@ public final class SharedMemory implements Parcelable, Closeable {
         return new SharedMemory(fd, size, memoryFile);
     }
 
-    public ByteBuffer mapReadWrite() throws Exception {
-        return map(FileChannel.MapMode.READ_WRITE, 0, mSize);
-    }
-
-    public ByteBuffer mapReadOnly() throws Exception {
-        return map(FileChannel.MapMode.READ_ONLY, 0, mSize);
-    }
-
-    public ByteBuffer map(FileChannel.MapMode mode, int offset, int length) throws Exception {
-        if (mFileDescriptor == null || !mFileDescriptor.valid()) throw new IllegalStateException();
-        return new FileInputStream(mFileDescriptor).getChannel().map(mode, offset, length);
-    }
-
-    public static ClassLoader buildDexClassLoader(ByteBuffer[] buffers, ClassLoader parent) {
+    public static ClassLoader InMemoryDexClassLoader(ByteBuffer[] buffers, ClassLoader parent) {
         try {
             int totalSize = 0;
             for (ByteBuffer buf : buffers) totalSize += buf.remaining();
@@ -82,13 +69,21 @@ public final class SharedMemory implements Parcelable, Closeable {
         }
     }
 
+    public ByteBuffer mapReadOnly() throws Exception {
+        if (mFileDescriptor == null || !mFileDescriptor.valid()) throw new IllegalStateException();
+        return new FileInputStream(mFileDescriptor).getChannel().map(FileChannel.MapMode.READ_ONLY, 0, mSize);
+    }
+
     public void setProtect(int prot) {
         try {
             Class<?> libcore = Class.forName("libcore.io.Libcore");
             Field osField = libcore.getField("os");
             Object os = osField.get(null);
             Method mprotect = os.getClass().getMethod("mprotect", long.class, long.class, int.class);
-            ByteBuffer buffer = mapReadWrite();
+            
+            FileInputStream fis = new FileInputStream(mFileDescriptor);
+            ByteBuffer buffer = fis.getChannel().map(FileChannel.MapMode.READ_WRITE, 0, mSize);
+            
             Field addressField = java.nio.Buffer.class.getDeclaredField("address");
             addressField.setAccessible(true);
             long address = addressField.getLong(buffer);
@@ -96,23 +91,7 @@ public final class SharedMemory implements Parcelable, Closeable {
         } catch (Throwable ignored) {}
     }
 
-    public static void unmap(ByteBuffer buffer) {
-        if (buffer == null) return;
-        try {
-            Method cleanerMethod = buffer.getClass().getMethod("cleaner");
-            cleanerMethod.setAccessible(true);
-            Object cleaner = cleanerMethod.invoke(buffer);
-            if (cleaner != null) {
-                cleaner.getClass().getMethod("clean").invoke(cleaner);
-            }
-        } catch (Throwable ignored) {}
-    }
-
-    @Override
-    public void close() {
-        if (mMemoryFile != null) mMemoryFile.close();
-    }
-
+    @Override public void close() { if (mMemoryFile != null) mMemoryFile.close(); }
     public int getSize() { return mSize; }
     public FileDescriptor getFileDescriptor() { return mFileDescriptor; }
     @Override public int describeContents() { return 1; }
@@ -121,4 +100,4 @@ public final class SharedMemory implements Parcelable, Closeable {
         @Override public SharedMemory createFromParcel(Parcel source) { return null; }
         @Override public SharedMemory[] newArray(int size) { return new SharedMemory[size]; }
     };
- }
+}
