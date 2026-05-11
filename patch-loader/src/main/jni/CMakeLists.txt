@@ -1,5 +1,5 @@
-cmake_minimum_required(VERSION 3.31.1)
 project(npatch)
+cmake_minimum_required(VERSION 3.31.1)
 
 set(CMAKE_CXX_STANDARD 23)
 add_compile_definitions(
