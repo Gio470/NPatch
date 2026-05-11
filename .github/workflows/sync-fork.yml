@@ -27,31 +27,34 @@ jobs:
         run: |
           UPSTREAM=$(gh api repos/${{ github.repository }} --jq '.parent.full_name')
           if [ -z "$UPSTREAM" ] || [ "$UPSTREAM" = "null" ]; then
-            echo "This repo is not a fork!"
             exit 1
           fi
           echo "repo=$UPSTREAM" >> $GITHUB_OUTPUT
-          echo "Upstream found: $UPSTREAM"
 
       - name: Config Git
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
 
-      - name: Merge upstream keep my code on conflict
+      - name: Force Merge Upstream
         id: merge
-        run: |
-          git remote add upstream https://github.com/${{ steps.upstream.outputs.repo }}.git          
-          git merge upstream/open-source --strategy-option ours --allow-unrelated-histories --no-edit || echo "Nothing to merge"
+        run: |          
+          git remote add upstream https://x-access-token:${{ secrets.PAT_TOKEN }}@github.com/${{ steps.upstream.outputs.repo }}.git
+                    
+          git fetch upstream open-source
+          
+          BEFORE=$(git rev-parse HEAD)
+          
+          git merge upstream/open-source --allow-unrelated-histories --strategy-option ours --no-edit || echo "Merge failed but continuing"
+          
           AFTER=$(git rev-parse HEAD)
           if [ "$BEFORE" != "$AFTER" ]; then
             echo "changed=true" >> $GITHUB_OUTPUT
-            echo "New code from upstream merged (Your port preserved)"
           else
             echo "changed=false" >> $GITHUB_OUTPUT
-            echo "Already up to date"
           fi
 
-      - name: Push
+      - name: Push to Master
         if: steps.merge.outputs.changed == 'true'
-        run: git push origin master
+        run: |
+          git push https://x-access-token:${{ secrets.PAT_TOKEN }}@github.com/${{ github.repository }}.git master
