@@ -23,14 +23,6 @@ jobs:
         ref: ${{ github.sha }}
         submodules: 'recursive'
         fetch-depth: 0
-    
-    - name: Fix Submodule
-      run: |          
-          git submodule sync --recursive          
-          git submodule update --init --force --recursive
-          
-          echo "Seen"          
-          find core/ -name "CMakeLists.txt"
 
     - name: System Port
       run: |
@@ -150,9 +142,8 @@ jobs:
       run: chmod +x gradlew
 
     - name: 使用 Gradle 構建依賴項
-      working-directory: libxposed
       run: |
-        cd api
+        cd libxposed/api
         echo 'org.gradle.jvmargs=-Xmx2048m' >> gradle.properties
         ./gradlew :api:publishApiPublicationToMavenLocal
         cd ../service
