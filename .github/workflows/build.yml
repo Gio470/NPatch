@@ -112,6 +112,18 @@ jobs:
           echo ${{ secrets.KEY_STORE }} | base64 --decode > key.jks
         fi
 
+    - name: 檢出 libxposed/api
+      uses: actions/checkout@main
+      with:
+        repository: libxposed/api
+        path: libxposed/api
+
+    - name: 檢出 libxposed/service
+      uses: actions/checkout@main
+      with:
+        repository: libxposed/service
+        path: libxposed/service
+
     - name: 設定 Java
       uses: actions/setup-java@v5
       with:
@@ -139,14 +151,7 @@ jobs:
       run: rm -rf "$ANDROID_HOME/cmake"
 
     - name: 授予 gradlew 執行權限
-      run: chmod +x gradlew
-
-    - name: Build and Install libxposed
-      run: |
-          if [ -d "libxposed" ]; then
-            ./gradlew :libxposed:api:publishToMavenLocal || echo "No libxposed api task"
-            ./gradlew :libxposed:service:publishToMavenLocal || echo "No libxposed service task"
-          fi
+      run: chmod +x gradlew    
 
     - name: 使用 Gradle 構建依賴項
       working-directory: libxposed
