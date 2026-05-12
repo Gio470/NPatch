@@ -142,8 +142,9 @@ jobs:
       run: chmod +x gradlew
 
     - name: 使用 Gradle 構建依賴項
+      working-directory: libxposed
       run: |
-        cd libxposed/api
+        cd api
         echo 'org.gradle.jvmargs=-Xmx2048m' >> gradle.properties
         ./gradlew :api:publishApiPublicationToMavenLocal
         cd ../service
