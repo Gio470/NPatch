@@ -7,7 +7,7 @@ pluginManagement {
             maven(url = "https://storage.googleapis.com/r8-releases/raw")
         }
         dependencies {
-            classpath("com.android.tools:r8:8.13.19")
+            classpath("com.android.tools:r8:9.1.31")
         }
     }
     repositories {
