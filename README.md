@@ -10,7 +10,7 @@ We sincerely invite you to join our [Telegram](https://t.me/NPatch) group to get
 
 ## Supported Versions
 
-- Min: Android 9
+- Min: Android 7
 - Max: In theory, same with [JingMatrix/LSPosed](https://github.com/JingMatrix/LSPosed#supported-versions)
 
 ## Download
