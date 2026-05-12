@@ -141,6 +141,13 @@ jobs:
     - name: 授予 gradlew 執行權限
       run: chmod +x gradlew
 
+    - name: Build and Install libxposed
+      run: |
+          if [ -d "libxposed" ]; then
+            ./gradlew :libxposed:api:publishToMavenLocal || echo "No libxposed api task"
+            ./gradlew :libxposed:service:publishToMavenLocal || echo "No libxposed service task"
+          fi
+
     - name: 使用 Gradle 構建依賴項
       working-directory: libxposed
       run: |
