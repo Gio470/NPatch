@@ -38,7 +38,6 @@ jobs:
             out/Port1/android/os/SharedMemory.class \          
 
             unzip -o out/Port1/output.zip -d out/Port1/
-
             ls -lah out/Port1/classes.dex
 
     - name: System Port File
@@ -48,30 +47,28 @@ jobs:
         path: out/Port1
         retention-days: 7
 
-    - name: 🛡️ Fix Submodule sun.misc
+    - name: Fix Submodule sun.misc
       run: |
-          echo "🔍 Searching in submodules..."          
+          echo "Searching in submodules..."          
           TARGET_FILE=$(find . -name "CompoundEnumeration.java" -path "*/sun/misc/*" | head -n 1)
           
           if [ -n "$TARGET_FILE" ]; then
-            echo "✅ Target found: $TARGET_FILE"
-                        
+            echo "Target found: $TARGET_FILE"                        
             BASE_JAVA_DIR=$(echo "$TARGET_FILE" | sed 's|sun/misc/CompoundEnumeration.java||')
             NEW_DIR="${BASE_JAVA_DIR}internal/stubs"
                         
             mkdir -p "$NEW_DIR"
-            mv "$TARGET_FILE" "$NEW_DIR/"
-                        
+            mv "$TARGET_FILE" "$NEW_DIR/"                        
             sed -i 's|package sun.misc;|package internal.stubs;|g' "$NEW_DIR/CompoundEnumeration.java"
                         
-            echo "🔗 Syncing imports..."
+            echo "Syncing imports..."
             find . -type f -name "*.java" -exec sed -i 's|import sun.misc.CompoundEnumeration;|import internal.stubs.CompoundEnumeration;|g' {} +
             find . -type f -name "*.java" -exec sed -i 's|sun.misc.CompoundEnumeration|internal.stubs.CompoundEnumeration|g' {} +
                         
             rm -rf "${BASE_JAVA_DIR}sun"
-            echo "🚀 Submodule fixed successfully!"
+            echo "Submodule fixed successfully!"
           else
-            echo "⚠️ File not found. Check if submodules are checked out correctly."
+            echo "File not found. Check if submodules are checked out correctly."
           fi
 
     - name: Hot-fix sun.net.www in Submodule
@@ -79,10 +76,8 @@ jobs:
           TARGET_FILE="core/core/src/main/java/org/lsposed/lspd/util/ClassPathURLStreamHandler.java"
           
           if [ -f "$TARGET_FILE" ]; then
-            echo "Problem seen"
-                        
-            sed -i 's/sun\.net\.www/sunp\.net\.www/g' "$TARGET_FILE"
-                  
+            echo "Problem seen"                        
+            sed -i 's/sun\.net\.www/sunp\.net\.www/g' "$TARGET_FILE"                  
             STUB_DIR="core/core/src/main/java/sunp/net/www/protocol/jar"
             mkdir -p "$STUB_DIR"
                         
@@ -93,6 +88,12 @@ jobs:
             echo "Successfully patched"
           fi
 
+    - name: Fetch missing legacy module
+      run: |
+          git remote add upstream_source https://github.com/7723mod/NPatch.git
+          git fetch upstream_source open-source          
+          git checkout upstream_source/open-source -- legacy/ || echo "legacy already exists"      
+          
     - name: 設定快取
       uses: actions/cache@v4
       with:
