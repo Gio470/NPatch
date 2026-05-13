@@ -72,7 +72,7 @@ dependencies {
     implementation("vector:core")
     implementation("vector:bridge")
     implementation("vector:daemon-service")
-    implementation("vector:legacy")
+    //implementation("vector:legacy")
     implementation(projects.share.android)
     implementation(projects.share.java)
 
