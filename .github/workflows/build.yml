@@ -88,6 +88,11 @@ jobs:
             echo "Successfully patched"
           fi
 
+    - name: Fix Git Ref for JGit
+      run: |
+          git checkout master || git checkout -b master
+          git pull origin master
+
     - name: 設定快取
       uses: actions/cache@v4
       with:
