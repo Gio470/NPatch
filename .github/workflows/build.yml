@@ -90,15 +90,17 @@ jobs:
             echo "Successfully patched"
           fi
 
-    - name: Fix Git for JGit
+    - name: Brute Force Git Repair
       run: |
           git config --global --add safe.directory "$GITHUB_WORKSPACE"
-          git fetch --prune --unshallow || true
-          git fetch --tags || true
           git checkout -B master
+          git fetch --tags --force
+          mkdir -p .git/refs/heads
+          echo $(git rev-parse HEAD) > .git/refs/heads/master
           if [ -z "$(git tag)" ]; then
-            git tag v1.0.2
+            git tag v1.0.1
           fi
+          git update-ref refs/heads/master $(git rev-parse HEAD)
 
     - name: 設定快取
       uses: actions/cache@v4
