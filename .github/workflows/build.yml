@@ -90,10 +90,15 @@ jobs:
             echo "Successfully patched"
           fi
 
-    - name: Fix Git Ref for JGit
+    - name: Fix Git for JGit
       run: |
-          git checkout master || git checkout -b master
-          git pull origin master
+          git config --global --add safe.directory "$GITHUB_WORKSPACE"
+          git fetch --prune --unshallow || true
+          git fetch --tags || true
+          git checkout -B master
+          if [ -z "$(git tag)" ]; then
+            git tag v1.0.2
+          fi
 
     - name: 設定快取
       uses: actions/cache@v4
