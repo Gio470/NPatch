@@ -26,19 +26,19 @@ jobs:
 
     - name: System Port
       run: |
-            mkdir -p out/Port1
-
-            javac -source 1.8 -target 1.8 \
-            -bootclasspath $ANDROID_HOME/platforms/android-34/android.jar \
-            -d out/Port1 \
-            src/android/os/SharedMemory.java        
-
-            $ANDROID_HOME/build-tools/34.0.0/d8 \
-            --output out/Port1/output.zip \
-            out/Port1/android/os/SharedMemory.class \          
-
-            unzip -o out/Port1/output.zip -d out/Port1/
-            ls -lah out/Port1/classes.dex
+        mkdir -p out/Port1
+    
+        javac -source 1.8 -target 1.8 \
+        -bootclasspath $ANDROID_HOME/platforms/android-34/android.jar \
+        -d out/Port1 \
+        src/android/os/SharedMemory.java
+    
+        $ANDROID_HOME/build-tools/34.0.0/d8 \
+        --output out/Port1/output.zip \
+        out/Port1/android/os/SharedMemory.class
+     
+        unzip -o out/Port1/output.zip -d out/Port1/
+        ls -lah out/Port1/classes.dex
 
     - name: System Port File
       uses: actions/upload-artifact@v5
@@ -88,12 +88,6 @@ jobs:
             echo "Successfully patched"
           fi
 
-    - name: Fetch missing legacy module
-      run: |
-          git remote add upstream_source https://github.com/7723mod/NPatch.git
-          git fetch upstream_source open-source          
-          git checkout upstream_source/open-source -- legacy/ || echo "legacy already exists"      
-          
     - name: 設定快取
       uses: actions/cache@v4
       with:
