@@ -20,7 +20,7 @@ android {
             proguardFiles("proguard-rules.pro")
         }
     }
-    namespace = "org.lsposed.npatch.metaloader"
+    namespace = "top.nkbe.npatch.metaloader"
 }
 
 androidComponents.onVariants { variant ->

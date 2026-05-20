@@ -32,7 +32,7 @@ android {
             useLegacyPackaging = true
         }
     }
-    namespace = "org.lsposed.npatch.loader"
+    namespace = "top.nkbe.npatch.loader"
 }
 
 androidComponents.onVariants { variant ->

@@ -22,22 +22,22 @@ buildscript {
     }
 }
 
-val commitCount = run {
+val commitCount = runCatching {
     val repo = FileRepository(rootProject.file(".git"))
-    val refId = repo.refDatabase.exactRef("refs/remotes/origin/miuix").objectId!!
-    Git(repo).log().add(refId).call().count()
-}
+    val refId = repo.refDatabase.exactRef("refs/remotes/origin/miuix")?.objectId
+    if (refId != null) Git(repo).log().add(refId).call().count() else 0
+}.getOrElse {0}
 
-val (coreCommitCount, coreLatestTag) = FileRepositoryBuilder().setGitDir(rootProject.file("core/.git"))
-    .setWorkTree(rootProject.file("core"))
-    .runCatching {
-        build().use { repo ->
+val (coreCommitCount, coreLatestTag) = runCatching {
+    FileRepositoryBuilder().setGitDir(rootProject.file("core/.git"))
+        .setWorkTree(rootProject.file("core"))
+        .build().use { repo ->
             val git = Git(repo)
             val coreCommitCount = git.log().add(repo.refDatabase.exactRef("HEAD").objectId).call().count()
             val ver = git.describe().setTags(true).setAbbrev(0).call().removePrefix("v")
             coreCommitCount to ver
         }
-    }.getOrNull() ?: (3015 to "2.0")
+}.getOrNull() ?: (3045 to "2.0")
 
 val defaultManagerPackageName by extra("org.lsposed.npatch")
 val apiCode by extra(100)
@@ -137,7 +137,7 @@ fun Project.configureBaseExtension() {
                 }
             }
             named("release") {
-                signingConfig = null
+                signingConfig = if (signingConfigs["config"].storeFile != null) signingConfigs["config"] else signingConfigs["debug"]
                 externalNativeBuild {
                     cmake {
                         val flags = arrayOf(
